@@ -19,7 +19,7 @@ jobs:
     environment: "resourceful-recreation / production"
     timeout-minutes: 30
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
       GBIZ_API_TOKEN: ${{ secrets.GBIZ_API_TOKEN }}
@@ -35,7 +35,7 @@ jobs:
       - name: Validate required secrets
         shell: bash
         run: |
-          required=(RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_ID GBIZ_API_TOKEN)
+          required=(RAILWAY_API_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_ID GBIZ_API_TOKEN)
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
               echo "Missing required production secret: $name" >&2
