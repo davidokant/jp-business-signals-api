@@ -1,0 +1,110 @@
+RapidAPI 补充端点填写单
+更新：2026-08-26
+
+使用位置：Rapid Studio → Japan Business Signals API → Hub Listing → Definitions → Endpoints → Create REST Endpoint。
+
+所有端点都选择 GET。不要添加请求 Header，不要添加 Body。保存前检查路径中没有 Railway 域名，只保留以 / 开头的路径。
+
+端点一
+Name：Search Japanese Companies
+Description：Search Japanese companies from official gBizINFO records. Filter by keyword, prefecture, industry, or activity score.
+Path：/v1/companies/search
+
+Query 参数
+q：STRING，可选。Company name or keyword.
+prefecture：STRING，可选。Japanese prefecture name.
+industry：STRING，可选。Industry label.
+min_activity_score：INTEGER，可选。Minimum activity score from 0 to 100. Default: 0.
+limit：INTEGER，可选。Results per page, from 1 to 100. Default: 25.
+offset：INTEGER，可选。Pagination offset. Default: 0.
+
+200 Example Response，Media Type 选 application/json，在 Body 中粘贴：
+{
+  "items": [
+    {
+      "source_name": "gBizINFO",
+      "source_url": "https://info.gbiz.go.jp/",
+      "source_license": "Official gBizINFO API terms",
+      "collected_at": "2026-08-26T00:00:00Z",
+      "corporate_number": "1234567890123",
+      "name": "Example Japan Co., Ltd.",
+      "name_kana": null,
+      "prefecture": "Tokyo",
+      "city": "Chiyoda",
+      "industry": "Information services",
+      "homepage_url": "https://example.com/",
+      "activity_score": 72,
+      "procurement_count": 3,
+      "subsidy_count": 0,
+      "patent_count": 0,
+      "source_updated_at": "2026-08-20T00:00:00Z"
+    }
+  ],
+  "count": 1,
+  "limit": 25,
+  "offset": 0
+}
+
+端点二
+Name：Get Company Details
+Description：Returns official company details for a 13-digit Japanese corporate number.
+Path：/v1/companies/{corporate_number}
+
+Path 参数
+corporate_number：STRING，必填。13-digit Japanese corporate number.
+
+200 Example Response，Media Type 选 application/json，在 Body 中粘贴：
+{
+  "source_name": "gBizINFO",
+  "source_url": "https://info.gbiz.go.jp/",
+  "source_license": "Official gBizINFO API terms",
+  "collected_at": "2026-08-26T00:00:00Z",
+  "corporate_number": "1234567890123",
+  "name": "Example Japan Co., Ltd.",
+  "name_kana": null,
+  "prefecture": "Tokyo",
+  "city": "Chiyoda",
+  "industry": "Information services",
+  "homepage_url": "https://example.com/",
+  "activity_score": 72,
+  "procurement_count": 3,
+  "subsidy_count": 0,
+  "patent_count": 0,
+  "source_updated_at": "2026-08-20T00:00:00Z"
+}
+
+端点三
+Name：Get Company Signal Timeline
+Description：Returns procurement and other business signals for one Japanese company, ordered as a reusable activity timeline.
+Path：/v1/companies/{corporate_number}/timeline
+
+Path 参数
+corporate_number：STRING，必填。13-digit Japanese corporate number.
+
+Query 参数
+limit：INTEGER，可选。Results per page, from 1 to 200. Default: 50.
+offset：INTEGER，可选。Pagination offset. Default: 0.
+
+200 Example Response，Media Type 选 application/json，在 Body 中粘贴：
+{
+  "corporate_number": "1234567890123",
+  "company_name": "Example Japan Co., Ltd.",
+  "items": [
+    {
+      "id": 1,
+      "source_name": "gBizINFO",
+      "source_url": "https://info.gbiz.go.jp/",
+      "source_license": "Official gBizINFO API terms",
+      "collected_at": "2026-08-26T00:00:00Z",
+      "corporate_number": "1234567890123",
+      "signal_type": "procurement",
+      "title": "Public procurement activity recorded",
+      "occurred_on": "2026-08-20",
+      "score_delta": 12
+    }
+  ]
+}
+
+操作次序
+每个端点先填 Name、Description 和 Path，再分别在 Query 或 Path 页面添加参数。Example Responses 如尚无 200，点 Add New Response Code，选 200，再填 Body。每个端点最后只需点一次 Save。
+

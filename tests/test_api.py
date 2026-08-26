@@ -77,11 +77,25 @@ def test_get_company_and_timeline(client, auth_headers) -> None:
     company_number = "0000000000001"
     company = client.get(f"/v1/companies/{company_number}", headers=auth_headers)
     timeline = client.get(f"/v1/companies/{company_number}/timeline", headers=auth_headers)
+    company_by_query = client.get(
+        "/v1/company-details",
+        params={"corporate_number": company_number},
+        headers=auth_headers,
+    )
+    timeline_by_query = client.get(
+        "/v1/company-timeline",
+        params={"corporate_number": company_number},
+        headers=auth_headers,
+    )
 
     assert company.status_code == 200
     assert company.json()["corporate_number"] == company_number
     assert timeline.status_code == 200
     assert len(timeline.json()["items"]) == 2
+    assert company_by_query.status_code == 200
+    assert company_by_query.json()["corporate_number"] == company_number
+    assert timeline_by_query.status_code == 200
+    assert len(timeline_by_query.json()["items"]) == 2
 
 
 def test_signal_filters(client, auth_headers) -> None:

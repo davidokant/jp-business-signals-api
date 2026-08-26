@@ -135,13 +135,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         return CompanySearchResponse(items=items, count=len(items), limit=limit, offset=offset)
 
-    @app.get(
-        "/v1/companies/{corporate_number}",
-        response_model=Company,
-        tags=["companies"],
-        dependencies=[Depends(auth_dependency)],
-    )
-    def get_company(corporate_number: str) -> Company:
+    def company_by_number(corporate_number: str) -> Company:
         if len(corporate_number) != 13 or not corporate_number.isdigit():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -151,6 +145,46 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not company:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
         return company
+
+    @app.get(
+        "/v1/companies/{corporate_number}",
+        response_model=Company,
+        tags=["companies"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def get_company(corporate_number: str) -> Company:
+        return company_by_number(corporate_number)
+
+    @app.get(
+        "/v1/company-details",
+        response_model=Company,
+        tags=["companies"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def get_company_details(
+        corporate_number: Annotated[str, Query(pattern=r"^\d{13}$")],
+    ) -> Company:
+        """RapidAPI-friendly company lookup using an explicit query parameter."""
+        return company_by_number(corporate_number)
+
+    def timeline_for_company(
+        corporate_number: str,
+        limit: int,
+        offset: int,
+    ) -> TimelineResponse:
+        company = company_by_number(corporate_number)
+        items = repository.list_signals(
+            since=None,
+            signal_type=None,
+            corporate_number=corporate_number,
+            limit=limit,
+            offset=offset,
+        )
+        return TimelineResponse(
+            corporate_number=corporate_number,
+            company_name=company.name,
+            items=items,
+        )
 
     @app.get(
         "/v1/companies/{corporate_number}/timeline",
@@ -163,20 +197,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         limit: Annotated[int, Query(ge=1, le=200)] = 50,
         offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
     ) -> TimelineResponse:
-        company = repository.get_company(corporate_number)
-        if not company:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
-        items = repository.list_signals(
-            since=None,
-            signal_type=None,
+        return timeline_for_company(
             corporate_number=corporate_number,
             limit=limit,
             offset=offset,
         )
-        return TimelineResponse(
+
+    @app.get(
+        "/v1/company-timeline",
+        response_model=TimelineResponse,
+        tags=["companies"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def get_company_signal_timeline(
+        corporate_number: Annotated[str, Query(pattern=r"^\d{13}$")],
+        limit: Annotated[int, Query(ge=1, le=200)] = 50,
+        offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
+    ) -> TimelineResponse:
+        """RapidAPI-friendly timeline lookup using an explicit query parameter."""
+        return timeline_for_company(
             corporate_number=corporate_number,
-            company_name=company.name,
-            items=items,
+            limit=limit,
+            offset=offset,
         )
 
     @app.get(
