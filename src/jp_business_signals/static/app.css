@@ -416,6 +416,64 @@ h1 em {
   color: var(--acid);
 }
 
+.use-cases {
+  padding: 96px max(20px, calc((100% - 1180px) / 2));
+  border-top: 1px solid var(--line);
+}
+
+.use-case-heading {
+  max-width: 700px;
+}
+
+.use-case-heading h2 {
+  margin: 0;
+  font-size: clamp(38px, 5vw, 64px);
+  letter-spacing: -0.055em;
+}
+
+.use-case-heading > p:last-child {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.use-case-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 48px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.use-case-grid article {
+  min-height: 250px;
+  padding: 28px;
+  background: var(--white);
+}
+
+.case-number {
+  margin: 0;
+  color: var(--signal-dark);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.use-case-grid h3 {
+  margin: 52px 0 12px;
+  font-size: 25px;
+  letter-spacing: -0.035em;
+}
+
+.use-case-grid article > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .pricing-section {
   padding: 100px max(20px, calc((100% - 1180px) / 2)) 120px;
   background: var(--white);
@@ -642,7 +700,8 @@ footer p,
 
   .hero-stats,
   .signal-grid,
-  .pricing-grid {
+  .pricing-grid,
+  .use-case-grid {
     grid-template-columns: 1fr;
   }
 

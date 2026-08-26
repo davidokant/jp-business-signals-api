@@ -1,5 +1,24 @@
 # JP Business Signals API
 
+## For API buyers
+
+**Japan company search and procurement signals for supplier research, B2B sales intelligence, and market-entry products.** Every returned company and signal preserves a source URL, license note, and collection time.
+
+- Try it on [RapidAPI](https://rapidapi.com/davidokant/api/japan-business-signals-api)
+- Read the live [landing page](https://jp-business-signals-api-production.up.railway.app/)
+- Inspect the interactive [OpenAPI documentation](https://jp-business-signals-api-production.up.railway.app/docs)
+
+Core endpoints for product integration:
+
+```text
+GET /v1/companies/search
+GET /v1/company-details?corporate_number=1234567890123
+GET /v1/company-timeline?corporate_number=1234567890123&limit=50&offset=0
+GET /v1/signals
+```
+
+The activity score is a transparent product metric based on observed public activity. It is not a credit score and must not be used for decisions about people, employment, insurance, housing, or other high-impact contexts.
+
 一个可运行的 API 市场 MVP：把有来源记录的日本企业公开资料整理为公司检索、企业详情、经营信号和活动时间线接口。
 
 当前版本默认装载**合成样本**，用于验证接口、定价和客户需求，不代表真实企业。真实 gBizINFO 数据接入必须使用申请获得的访问令牌，并遵守来源条款。

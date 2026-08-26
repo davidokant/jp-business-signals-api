@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Search source-traceable Japanese company profiles and procurement activity through one clean API."
+      content="Japan company search and procurement signals API for supplier research, B2B sales intelligence, and market-entry products."
     />
+    <link rel="canonical" href="https://jp-business-signals-api-production.up.railway.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="JP Signals — Japan Procurement Data API" />
     <meta
@@ -24,6 +25,22 @@
       content="Japan procurement signals, ready for code."
     />
     <meta name="twitter:image" content="/assets/jp-signals-og.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "JP Business Signals API",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Source-traceable Japanese company profiles and public procurement activity signals for developers.",
+        "url": "https://jp-business-signals-api-production.up.railway.app/",
+        "offers": [
+          { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          { "@type": "Offer", "price": "29", "priceCurrency": "USD" },
+          { "@type": "Offer", "price": "99", "priceCurrency": "USD" }
+        ]
+      }
+    </script>
     <title>JP Signals — Japan Procurement Data API</title>
     <link rel="stylesheet" href="/assets/app.css" />
     <script src="/assets/app.js" defer></script>
@@ -37,7 +54,7 @@
       <div class="nav-links">
         <a href="#demo">Live data</a>
         <a href="#pricing">API pricing</a>
-        <a class="nav-cta" href="/docs">API docs</a>
+        <a class="nav-cta" href="https://rapidapi.com/davidokant/api/japan-business-signals-api">Get API access</a>
       </div>
     </nav>
 
@@ -57,7 +74,7 @@
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#demo">Explore live data</a>
-            <a class="button button-secondary" href="/docs">Read API docs</a>
+            <a class="button button-secondary" href="https://rapidapi.com/davidokant/api/japan-business-signals-api">Get it on RapidAPI</a>
           </div>
         </div>
 
@@ -134,13 +151,41 @@
   -H "X-API-Key: YOUR_KEY"</code></pre>
       </section>
 
+      <section class="use-cases" aria-labelledby="use-cases-title">
+        <div class="use-case-heading">
+          <p class="eyebrow">BUILT FOR PRODUCT TEAMS</p>
+          <h2 id="use-cases-title">Make Japan market data usable.</h2>
+          <p>
+            Use one documented API instead of building and maintaining a separate
+            ingestion pipeline for company records and procurement activity.
+          </p>
+        </div>
+        <div class="use-case-grid">
+          <article>
+            <p class="case-number">01</p>
+            <h3>Supplier research</h3>
+            <p>Search company records, compare public activity, and retain a source link for every result.</p>
+          </article>
+          <article>
+            <p class="case-number">02</p>
+            <h3>B2B sales intelligence</h3>
+            <p>Prioritize Japanese accounts using a transparent activity signal, not an opaque score.</p>
+          </article>
+          <article>
+            <p class="case-number">03</p>
+            <h3>Market-entry products</h3>
+            <p>Add company lookup and procurement timelines to an existing research workflow or SaaS product.</p>
+          </article>
+        </div>
+      </section>
+
       <section class="pricing-section" id="pricing">
         <div class="pricing-heading">
           <p class="eyebrow">SELF-SERVE PRICING</p>
           <h2>Start free. Pay when it ships.</h2>
           <p>
-            Proposed RapidAPI launch plans. Billing will activate when the
-            public endpoint is deployed.
+            Subscribe and get your RapidAPI key in minutes. Start free, then
+            scale only when your product needs more calls.
           </p>
         </div>
         <div class="pricing-grid">
@@ -153,7 +198,7 @@
               <li>Procurement signal preview</li>
               <li>Official source URLs</li>
             </ul>
-            <a class="price-button" href="#demo">Try the explorer</a>
+            <a class="price-button" href="https://rapidapi.com/davidokant/api/japan-business-signals-api">Start free on RapidAPI</a>
           </article>
           <article class="price-card featured">
             <div class="featured-label">LAUNCH PLAN</div>
@@ -165,18 +210,18 @@
               <li>Company timelines</li>
               <li>Production usage</li>
             </ul>
-            <a class="price-button" href="/docs">Inspect the API</a>
+            <a class="price-button" href="https://rapidapi.com/davidokant/api/japan-business-signals-api">Choose Pro on RapidAPI</a>
           </article>
           <article class="price-card">
             <p class="plan-name">ULTRA</p>
             <p class="price"><span>$</span>99</p>
-            <p class="price-note">50,000 requests / month</p>
+            <p class="price-note">25,000 requests / month</p>
             <ul>
               <li>Everything in Pro</li>
-              <li>Procurement delta feed</li>
-              <li>Webhook access when launched</li>
+              <li>High-volume research</li>
+              <li>Source-traceable records</li>
             </ul>
-            <a class="price-button" href="/docs">Inspect the API</a>
+            <a class="price-button" href="https://rapidapi.com/davidokant/api/japan-business-signals-api">Choose Ultra on RapidAPI</a>
           </article>
         </div>
       </section>
