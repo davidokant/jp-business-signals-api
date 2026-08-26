@@ -1,6 +1,9 @@
 name: Refresh gBizINFO data
 
 on:
+  schedule:
+    # 18:17 UTC is approximately 03:17 JST the following day.
+    - cron: "17 18 * * *"
   workflow_dispatch:
 
 permissions:
@@ -13,7 +16,8 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    environment: production
+    environment: "resourceful-recreation / production"
+    timeout-minutes: 30
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
@@ -28,6 +32,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          required=(RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_ID GBIZ_API_TOKEN)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required production secret: $name" >&2
+              exit 1
+            fi
+          done
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -37,7 +52,7 @@ jobs:
         run: npm install --global @railway/cli
 
       - name: Install application dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Link the production service
         run: >-
@@ -50,6 +65,9 @@ jobs:
       - name: Download the current production database
         run: railway volume files download /production.db data/production.db --overwrite
 
+      - name: Preserve the previous production database
+        run: railway volume files upload data/production.db /production.backup.db --overwrite
+
       - name: Import the recent official updates
         shell: bash
         run: |
@@ -61,7 +79,37 @@ jobs:
             --max-pages 10 \
             --terms-confirmed
 
+      - name: Verify the refreshed database
+        shell: bash
+        run: >-
+          uv run python -c
+          "import sqlite3;
+          connection = sqlite3.connect('data/production.db');
+          integrity = connection.execute('PRAGMA integrity_check').fetchone()[0];
+          companies = connection.execute('SELECT COUNT(*) FROM companies').fetchone()[0];
+          sources = connection.execute('SELECT COUNT(DISTINCT source_name) FROM companies').fetchone()[0];
+          assert integrity == 'ok', integrity;
+          assert companies > 0, 'refreshed database has no companies';
+          assert sources > 0, 'refreshed database has no sources';
+          print(f'Integrity ok: {companies} companies from {sources} source(s)')"
+
       - name: Replace the production database and restart the API
         run: |
           railway volume files upload data/production.db /production.db --overwrite
           railway service restart --service "$RAILWAY_SERVICE_ID"
+
+      - name: Verify the public data status
+        shell: bash
+        run: |
+          for attempt in {1..12}; do
+            if payload="$(curl --fail --silent --show-error --max-time 15 \
+              https://jp-business-signals-api-production.up.railway.app/status)"; then
+              STATUS_PAYLOAD="$payload" uv run python -c \
+                "import json, os; data = json.loads(os.environ['STATUS_PAYLOAD']); assert data['companies'] > 0; assert data['official_sources'] > 0; assert data['latest_collection']; print(json.dumps(data))"
+              exit 0
+            fi
+            echo "Status endpoint not ready (attempt $attempt/12)"
+            sleep 5
+          done
+          echo "Production status verification failed" >&2
+          exit 1

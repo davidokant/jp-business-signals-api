@@ -85,13 +85,14 @@ the public base URL and production proxy secret in RapidAPI.
 
 ## Refresh workflow
 
-The repository includes a manual GitHub Actions workflow at
-`.github/workflows/refresh-gbiz.yml`. It deliberately has no daily schedule
-yet. Run it manually once after the first Railway deployment, inspect the
-workflow logs and the public `/demo/stats` result, then decide whether to add a
-schedule.
+The repository includes a GitHub Actions workflow at
+`.github/workflows/refresh-gbiz.yml`. It runs once per day at 18:17 UTC
+(approximately 03:17 JST the following day; GitHub may delay scheduled jobs)
+and can also be started manually. The job is serialized so two refreshes cannot
+run at the same time.
 
-Create a GitHub `production` environment and add these environment secrets:
+Use the existing GitHub `resourceful-recreation / production` environment and
+add these environment secrets:
 
 ```text
 RAILWAY_TOKEN=<project-scoped Railway token>
@@ -100,15 +101,19 @@ RAILWAY_SERVICE_ID=<Railway API service ID>
 GBIZ_API_TOKEN=<your-gBizINFO-token>
 ```
 
-The workflow downloads the current production database, imports an overlapping
-eight-day window of official data, uploads the refreshed database back to the
-Railway Volume, and restarts the API. The overlap helps catch delayed source
-updates. It is serialized so two refreshes cannot run at the same time.
+The workflow downloads the current production database, copies the previous
+version to `/production.backup.db` on the same Railway Volume, imports an
+overlapping eight-day window of official data, checks SQLite integrity and
+non-empty coverage, uploads the refreshed database, restarts the API, and
+validates the public `/status` endpoint. The overlap helps catch delayed source
+updates. A failed import or integrity check stops before the production database
+is overwritten. The rolling backup is overwritten only after the next scheduled
+run starts.
 
-After a successful manual run, enable a daily schedule only if the declared
-token purpose and current gBizINFO terms permit that cadence. Set a GitHub
-environment approval rule if you want each production refresh to require your
-click before it starts.
+For unattended refreshes, do not add a required-reviewer protection rule to the
+GitHub `resourceful-recreation / production` environment; such a rule leaves scheduled jobs waiting for
+manual approval. Pause the schedule if the token purpose, current gBizINFO
+terms, or desired update cadence changes.
 
 ## Cost and safety controls
 
