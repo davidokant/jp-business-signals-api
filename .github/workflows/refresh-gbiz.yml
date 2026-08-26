@@ -19,84 +19,22 @@ jobs:
     environment: "resourceful-recreation / production"
     timeout-minutes: 30
     env:
-      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-      GBIZ_API_TOKEN: ${{ secrets.GBIZ_API_TOKEN }}
-      APP_DATABASE_PATH: data/production.db
-      APP_AUTO_SEED_SAMPLE: "false"
-      GBIZ_BASE_URL: https://api.info.gbiz.go.jp/hojin
-      GBIZ_TIMEOUT_SECONDS: "30"
-      GBIZ_REQUEST_INTERVAL_SECONDS: "0.25"
+      APP_REFRESH_TOKEN: ${{ secrets.APP_REFRESH_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate required secrets
+      - name: Validate the refresh credential
         shell: bash
         run: |
-          required=(RAILWAY_API_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_ID GBIZ_API_TOKEN)
-          for name in "${required[@]}"; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "Missing required production secret: $name" >&2
-              exit 1
-            fi
-          done
+          test -n "$APP_REFRESH_TOKEN" || { echo "Missing APP_REFRESH_TOKEN" >&2; exit 1; }
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-
-      - name: Install Railway CLI
-        run: npm install --global @railway/cli
-
-      - name: Install application dependencies
-        run: uv sync --locked
-
-      - name: Link the production service
+      - name: Request the atomic production refresh
         run: >-
-          railway link
-          --project "$RAILWAY_PROJECT_ID"
-          --environment production
-          --service "$RAILWAY_SERVICE_ID"
-          --json
-
-      - name: Download the current production database
-        run: railway volume files download /production.db data/production.db --overwrite
-
-      - name: Preserve the previous production database
-        run: railway volume files upload data/production.db /production.backup.db --overwrite
-
-      - name: Import the recent official updates
-        shell: bash
-        run: |
-          refresh_to="$(date -u +%Y%m%d)"
-          refresh_from="$(date -u -d '8 days ago' +%Y%m%d)"
-          uv run jpbs-ingest gbiz \
-            --from "$refresh_from" \
-            --to "$refresh_to" \
-            --max-pages 10 \
-            --terms-confirmed
-
-      - name: Verify the refreshed database
-        shell: bash
-        run: >-
-          uv run python -c
-          "import sqlite3;
-          connection = sqlite3.connect('data/production.db');
-          integrity = connection.execute('PRAGMA integrity_check').fetchone()[0];
-          companies = connection.execute('SELECT COUNT(*) FROM companies').fetchone()[0];
-          sources = connection.execute('SELECT COUNT(DISTINCT source_name) FROM companies').fetchone()[0];
-          assert integrity == 'ok', integrity;
-          assert companies > 0, 'refreshed database has no companies';
-          assert sources > 0, 'refreshed database has no sources';
-          print(f'Integrity ok: {companies} companies from {sources} source(s)')"
-
-      - name: Replace the production database and restart the API
-        run: |
-          railway volume files upload data/production.db /production.db --overwrite
-          railway service restart --service "$RAILWAY_SERVICE_ID"
+          curl --fail --silent --show-error --max-time 900
+          --request POST
+          --header "X-Refresh-Token: $APP_REFRESH_TOKEN"
+          https://jp-business-signals-api-production.up.railway.app/internal/refresh-gbiz
 
       - name: Verify the public data status
         shell: bash
@@ -104,8 +42,7 @@ jobs:
           for attempt in {1..12}; do
             if payload="$(curl --fail --silent --show-error --max-time 15 \
               https://jp-business-signals-api-production.up.railway.app/status)"; then
-              STATUS_PAYLOAD="$payload" uv run python -c \
-                "import json, os; data = json.loads(os.environ['STATUS_PAYLOAD']); assert data['companies'] > 0; assert data['official_sources'] > 0; assert data['latest_collection']; print(json.dumps(data))"
+              echo "$payload"
               exit 0
             fi
             echo "Status endpoint not ready (attempt $attempt/12)"

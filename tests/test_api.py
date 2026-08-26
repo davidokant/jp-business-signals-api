@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
+from jp_business_signals.config import Settings
+from jp_business_signals.main import create_app
+
 
 def test_health_is_public(client) -> None:
     response = client.get("/health")
@@ -15,6 +20,26 @@ def test_public_data_status_reports_coverage_without_authentication(client) -> N
     assert payload["signals"] == 4
     assert payload["official_sources"] == 1
     assert payload["latest_collection"] is not None
+
+
+def test_internal_refresh_requires_its_own_secret_and_returns_status(tmp_path, monkeypatch) -> None:
+    settings = Settings(
+        environment="test",
+        database_path=tmp_path / "refresh.db",
+        api_keys=frozenset({"test-key"}),
+        rapidapi_proxy_secret=None,
+        rate_limit_per_minute=100,
+        auto_seed_sample=True,
+        refresh_token="refresh-secret",
+    )
+    monkeypatch.setattr("jp_business_signals.main.refresh_gbiz_database", lambda _: None)
+    with TestClient(create_app(settings)) as test_client:
+        assert test_client.post("/internal/refresh-gbiz").status_code == 404
+        response = test_client.post(
+            "/internal/refresh-gbiz", headers={"X-Refresh-Token": "refresh-secret"}
+        )
+    assert response.status_code == 200
+    assert response.json()["companies"] == 4
 
 
 def test_landing_page_is_public(client) -> None:

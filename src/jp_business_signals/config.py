@@ -25,6 +25,7 @@ class Settings:
     gbiz_base_url: str = "https://api.info.gbiz.go.jp/hojin"
     gbiz_timeout_seconds: float = 30.0
     gbiz_request_interval_seconds: float = 0.25
+    refresh_token: str | None = None
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> Settings:
@@ -59,4 +60,5 @@ class Settings:
             gbiz_request_interval_seconds=max(
                 0.0, float(os.getenv("GBIZ_REQUEST_INTERVAL_SECONDS", "0.25"))
             ),
+            refresh_token=os.getenv("APP_REFRESH_TOKEN", "").strip() or None,
         )

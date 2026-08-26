@@ -3,6 +3,8 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
+from secrets import compare_digest
+from threading import Lock
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
@@ -11,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import Settings
 from .dataset import load_dataset, sample_dataset_path
+from .refresh import refresh_gbiz_database
 from .repository import Repository
 from .schemas import (
     Company,
@@ -30,6 +33,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     repository = Repository(Path(resolved_settings.database_path))
     authenticator = ApiAuthenticator(resolved_settings)
     demo_limiter = FixedWindowRateLimiter(60)
+    refresh_lock = Lock()
     static_directory = Path(__file__).with_name("static")
 
     @asynccontextmanager
@@ -98,6 +102,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def public_data_status() -> PublicDataStatus:
         """Public coverage and freshness summary; no API key required."""
         return repository.public_data_status()
+
+    @app.post("/internal/refresh-gbiz", include_in_schema=False)
+    def refresh_gbiz(request: Request) -> PublicDataStatus:
+        """Run the daily official-data refresh; callable only by the scheduled workflow."""
+        supplied_token = request.headers.get("X-Refresh-Token", "")
+        configured_token = resolved_settings.refresh_token
+        if not configured_token or not compare_digest(supplied_token, configured_token):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+        if not refresh_lock.acquire(blocking=False):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Refresh already running"
+            )
+        try:
+            refresh_gbiz_database(resolved_settings)
+            return repository.public_data_status()
+        finally:
+            refresh_lock.release()
 
     @app.get(
         "/demo/stats",
