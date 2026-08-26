@@ -7,6 +7,16 @@ def test_health_is_public(client) -> None:
     assert response.json()["status"] == "ok"
 
 
+def test_public_data_status_reports_coverage_without_authentication(client) -> None:
+    response = client.get("/status")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["companies"] == 4
+    assert payload["signals"] == 4
+    assert payload["official_sources"] == 1
+    assert payload["latest_collection"] is not None
+
+
 def test_landing_page_is_public(client) -> None:
     response = client.get("/")
     assert response.status_code == 200

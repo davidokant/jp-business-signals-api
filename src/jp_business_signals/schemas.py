@@ -90,3 +90,12 @@ class DemoStats(BaseModel):
     procurement_signals: int
     active_companies: int
     official_sources: int
+
+
+class PublicDataStatus(BaseModel):
+    """Non-sensitive freshness and coverage summary for prospective API users."""
+
+    companies: int = Field(ge=0)
+    signals: int = Field(ge=0)
+    official_sources: int = Field(ge=0)
+    latest_collection: datetime | None = None

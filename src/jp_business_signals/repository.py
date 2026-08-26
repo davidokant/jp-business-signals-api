@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .schemas import Company, DemoSignal, DemoStats, Signal, SourceSummary
+from .schemas import Company, DemoSignal, DemoStats, PublicDataStatus, Signal, SourceSummary
 from .scoring import calculate_activity_score
 
 SCHEMA = """
@@ -323,6 +323,27 @@ class Repository:
                 """
             ).fetchone()
         return DemoStats.model_validate(dict(row))
+
+    def public_data_status(self) -> PublicDataStatus:
+        """Return aggregate coverage information without exposing customer data."""
+        with self.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM companies) AS companies,
+                    (SELECT COUNT(*) FROM signals) AS signals,
+                    (SELECT COUNT(DISTINCT source_name) FROM companies) AS official_sources,
+                    (
+                        SELECT MAX(collected_at)
+                        FROM (
+                            SELECT collected_at FROM companies
+                            UNION ALL
+                            SELECT collected_at FROM signals
+                        )
+                    ) AS latest_collection
+                """
+            ).fetchone()
+        return PublicDataStatus.model_validate(dict(row))
 
     def search_demo_procurement(
         self,

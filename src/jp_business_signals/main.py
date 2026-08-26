@@ -17,6 +17,7 @@ from .schemas import (
     CompanySearchResponse,
     DemoSignalResponse,
     DemoStats,
+    PublicDataStatus,
     SignalListResponse,
     SourceListResponse,
     TimelineResponse,
@@ -88,6 +89,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/health", tags=["operations"])
     def health() -> dict[str, str]:
         return {"status": "ok", "version": "0.1.0"}
+
+    @app.get(
+        "/status",
+        response_model=PublicDataStatus,
+        tags=["operations"],
+    )
+    def public_data_status() -> PublicDataStatus:
+        """Public coverage and freshness summary; no API key required."""
+        return repository.public_data_status()
 
     @app.get(
         "/demo/stats",
