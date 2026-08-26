@@ -1,0 +1,120 @@
+from __future__ import annotations
+
+
+def test_health_is_public(client) -> None:
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+def test_landing_page_is_public(client) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Japan procurement signals," in response.text
+    assert "ready for code." in response.text
+    assert 'content="/assets/jp-signals-og.png"' in response.text
+
+    preview = client.get("/assets/jp-signals-og.png")
+    assert preview.status_code == 200
+    assert preview.headers["content-type"] == "image/png"
+
+
+def test_public_launch_information_pages_are_available(client) -> None:
+    for path, expected_text in (
+        ("/privacy", "Privacy, plainly."),
+        ("/terms", "Use data responsibly."),
+        ("/data-sources", "Trace every signal."),
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert expected_text in response.text
+
+
+def test_demo_stats_are_public(client) -> None:
+    response = client.get("/demo/stats")
+    assert response.status_code == 200
+    assert response.json() == {
+        "companies": 4,
+        "procurement_signals": 1,
+        "active_companies": 4,
+        "official_sources": 1,
+    }
+
+
+def test_demo_procurement_search_is_public(client) -> None:
+    response = client.get("/demo/signals", params={"q": "Sakura"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["items"][0]["corporate_number"] == "0000000000001"
+    assert payload["items"][0]["company_name"] == "Sakura Industrial Systems (Synthetic)"
+
+
+def test_demo_procurement_search_returns_empty_for_no_match(client) -> None:
+    response = client.get("/demo/signals", params={"q": "NoSuchCompany"})
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "count": 0}
+
+
+def test_company_routes_require_authentication(client) -> None:
+    response = client.get("/v1/companies/search")
+    assert response.status_code == 401
+
+
+def test_search_filters_and_orders_by_activity(client, auth_headers) -> None:
+    response = client.get(
+        "/v1/companies/search",
+        params={"min_activity_score": 60},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 3
+    assert [item["activity_score"] for item in payload["items"]] == [91, 82, 68]
+
+
+def test_get_company_and_timeline(client, auth_headers) -> None:
+    company_number = "0000000000001"
+    company = client.get(f"/v1/companies/{company_number}", headers=auth_headers)
+    timeline = client.get(f"/v1/companies/{company_number}/timeline", headers=auth_headers)
+
+    assert company.status_code == 200
+    assert company.json()["corporate_number"] == company_number
+    assert timeline.status_code == 200
+    assert len(timeline.json()["items"]) == 2
+
+
+def test_signal_filters(client, auth_headers) -> None:
+    response = client.get(
+        "/v1/signals",
+        params={"since": "2026-08-19", "signal_type": "procurement"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["items"][0]["signal_type"] == "procurement"
+
+
+def test_sources_report_provenance(client, auth_headers) -> None:
+    response = client.get("/v1/sources", headers=auth_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["items"][0]["source_name"] == "Synthetic MVP Dataset"
+    assert payload["items"][0]["record_count"] == 8
+
+
+def test_rapidapi_proxy_secret_is_accepted(client) -> None:
+    response = client.get(
+        "/v1/companies/search",
+        headers={
+            "X-RapidAPI-Proxy-Secret": "rapid-secret",
+            "X-RapidAPI-User": "test-consumer",
+        },
+    )
+    assert response.status_code == 200
+
+
+def test_invalid_company_number_is_rejected(client, auth_headers) -> None:
+    response = client.get("/v1/companies/not-a-number", headers=auth_headers)
+    assert response.status_code == 422

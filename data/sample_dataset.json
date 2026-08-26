@@ -1,0 +1,123 @@
+{
+  "companies": [
+    {
+      "corporate_number": "0000000000001",
+      "name": "Sakura Industrial Systems (Synthetic)",
+      "name_kana": "サクラ・インダストリアル・システムズ",
+      "prefecture": "Tokyo",
+      "city": "Chiyoda",
+      "industry": "Industrial software",
+      "homepage_url": "https://example.com/sakura-industrial",
+      "activity_score": 82,
+      "procurement_count": 14,
+      "subsidy_count": 3,
+      "patent_count": 8,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/0000000000001",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "source_updated_at": "2026-08-20T00:00:00+09:00",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    },
+    {
+      "corporate_number": "0000000000002",
+      "name": "Hikari Climate Analytics (Synthetic)",
+      "name_kana": "ヒカリ・クライメート・アナリティクス",
+      "prefecture": "Kanagawa",
+      "city": "Yokohama",
+      "industry": "Climate analytics",
+      "homepage_url": "https://example.com/hikari-climate",
+      "activity_score": 68,
+      "procurement_count": 5,
+      "subsidy_count": 6,
+      "patent_count": 2,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/0000000000002",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "source_updated_at": "2026-08-18T00:00:00+09:00",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    },
+    {
+      "corporate_number": "0000000000003",
+      "name": "Kita Robotics Works (Synthetic)",
+      "name_kana": "キタ・ロボティクス・ワークス",
+      "prefecture": "Hokkaido",
+      "city": "Sapporo",
+      "industry": "Robotics",
+      "homepage_url": "https://example.com/kita-robotics",
+      "activity_score": 91,
+      "procurement_count": 9,
+      "subsidy_count": 4,
+      "patent_count": 21,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/0000000000003",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "source_updated_at": "2026-08-24T00:00:00+09:00",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    },
+    {
+      "corporate_number": "0000000000004",
+      "name": "Setouchi Circular Materials (Synthetic)",
+      "name_kana": "セトウチ・サーキュラー・マテリアルズ",
+      "prefecture": "Hiroshima",
+      "city": "Hiroshima",
+      "industry": "Advanced materials",
+      "homepage_url": "https://example.com/setouchi-materials",
+      "activity_score": 57,
+      "procurement_count": 2,
+      "subsidy_count": 7,
+      "patent_count": 5,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/0000000000004",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "source_updated_at": "2026-08-12T00:00:00+09:00",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    }
+  ],
+  "signals": [
+    {
+      "corporate_number": "0000000000001",
+      "signal_type": "procurement",
+      "title": "New public procurement award detected (synthetic)",
+      "occurred_on": "2026-08-20",
+      "score_delta": 8,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/signals/1",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    },
+    {
+      "corporate_number": "0000000000002",
+      "signal_type": "subsidy",
+      "title": "New subsidy record detected (synthetic)",
+      "occurred_on": "2026-08-18",
+      "score_delta": 5,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/signals/2",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    },
+    {
+      "corporate_number": "0000000000003",
+      "signal_type": "patent",
+      "title": "Patent activity increased (synthetic)",
+      "occurred_on": "2026-08-24",
+      "score_delta": 10,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/signals/3",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    },
+    {
+      "corporate_number": "0000000000001",
+      "signal_type": "profile_change",
+      "title": "Company profile updated (synthetic)",
+      "occurred_on": "2026-08-15",
+      "score_delta": 2,
+      "source_name": "Synthetic MVP Dataset",
+      "source_url": "https://example.com/synthetic-source/signals/4",
+      "source_license": "Synthetic data; unrestricted for testing",
+      "collected_at": "2026-08-26T00:00:00+09:00"
+    }
+  ]
+}
+

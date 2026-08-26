@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Search source-traceable Japanese company profiles and procurement activity through one clean API."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="JP Signals — Japan Procurement Data API" />
+    <meta
+      property="og:description"
+      content="Japan procurement signals, ready for code. Search live, source-traceable public data before integrating."
+    />
+    <meta property="og:image" content="/assets/jp-signals-og.png" />
+    <meta property="og:image:width" content="1731" />
+    <meta property="og:image:height" content="909" />
+    <meta property="og:image:type" content="image/png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="JP Signals — Japan Procurement Data API" />
+    <meta
+      name="twitter:description"
+      content="Japan procurement signals, ready for code."
+    />
+    <meta name="twitter:image" content="/assets/jp-signals-og.png" />
+    <title>JP Signals — Japan Procurement Data API</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <nav class="nav-shell">
+      <a class="wordmark" href="/" aria-label="JP Signals home">
+        <span class="wordmark-mark">JP</span>
+        <span>SIGNALS</span>
+      </a>
+      <div class="nav-links">
+        <a href="#demo">Live data</a>
+        <a href="#pricing">API pricing</a>
+        <a class="nav-cta" href="/docs">API docs</a>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span>公共調達</span> / PUBLIC PROCUREMENT DATA</p>
+          <h1>
+            Japan procurement signals,
+            <br />
+            <em>ready for code.</em>
+          </h1>
+          <p class="hero-text">
+            Search traceable company profiles and fresh government procurement
+            activity through one clean API. Every record keeps its official
+            source.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#demo">Explore live data</a>
+            <a class="button button-secondary" href="/docs">Read API docs</a>
+          </div>
+        </div>
+
+        <div class="hero-stats" aria-label="Current dataset">
+          <div>
+            <strong id="company-count">—</strong>
+            <span>companies</span>
+          </div>
+          <div>
+            <strong id="signal-count">—</strong>
+            <span>procurement signals</span>
+          </div>
+          <div>
+            <strong id="source-count">—</strong>
+            <span>official source</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo-section" id="demo">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">LIVE EXPLORER</p>
+            <h2>Start with a signal.</h2>
+          </div>
+          <p>
+            Try the public dataset before writing a line of integration code.
+            Search is limited to twelve results per request.
+          </p>
+        </div>
+
+        <form class="search-bar" id="search-form">
+          <label class="sr-only" for="signal-search">
+            Search procurement data
+          </label>
+          <input
+            id="signal-search"
+            name="query"
+            minlength="2"
+            maxlength="100"
+            placeholder="Search company or procurement title"
+            autocomplete="off"
+          />
+          <button type="submit">Search live data</button>
+        </form>
+
+        <p class="result-status" id="result-status" role="status">
+          Loading the latest procurement signals…
+        </p>
+        <div class="signal-grid" id="signal-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="principle-strip">
+        <p>Built for developers, not data archaeology.</p>
+        <ul>
+          <li>Normalized JSON</li>
+          <li>Dated activity signals</li>
+          <li>Source URL on every record</li>
+        </ul>
+      </section>
+
+      <section class="api-section">
+        <div class="api-copy">
+          <p class="eyebrow">ONE REQUEST AWAY</p>
+          <h2>From public record to product feature.</h2>
+          <p>
+            Filter active companies, read procurement timelines, and keep a
+            verifiable source trail without maintaining a government-data
+            ingestion pipeline.
+          </p>
+          <a class="text-link" href="/docs">Open interactive documentation →</a>
+        </div>
+        <pre class="code-card"><code><span>curl</span> "https://your-api.example/v1/signals?signal_type=procurement" \
+  -H "X-API-Key: YOUR_KEY"</code></pre>
+      </section>
+
+      <section class="pricing-section" id="pricing">
+        <div class="pricing-heading">
+          <p class="eyebrow">SELF-SERVE PRICING</p>
+          <h2>Start free. Pay when it ships.</h2>
+          <p>
+            Proposed RapidAPI launch plans. Billing will activate when the
+            public endpoint is deployed.
+          </p>
+        </div>
+        <div class="pricing-grid">
+          <article class="price-card">
+            <p class="plan-name">BASIC</p>
+            <p class="price"><span>$</span>0</p>
+            <p class="price-note">100 requests / month</p>
+            <ul>
+              <li>Company search</li>
+              <li>Procurement signal preview</li>
+              <li>Official source URLs</li>
+            </ul>
+            <a class="price-button" href="#demo">Try the explorer</a>
+          </article>
+          <article class="price-card featured">
+            <div class="featured-label">LAUNCH PLAN</div>
+            <p class="plan-name">PRO</p>
+            <p class="price"><span>$</span>29</p>
+            <p class="price-note">5,000 requests / month</p>
+            <ul>
+              <li>Everything in Basic</li>
+              <li>Company timelines</li>
+              <li>Production usage</li>
+            </ul>
+            <a class="price-button" href="/docs">Inspect the API</a>
+          </article>
+          <article class="price-card">
+            <p class="plan-name">ULTRA</p>
+            <p class="price"><span>$</span>99</p>
+            <p class="price-note">50,000 requests / month</p>
+            <ul>
+              <li>Everything in Pro</li>
+              <li>Procurement delta feed</li>
+              <li>Webhook access when launched</li>
+            </ul>
+            <a class="price-button" href="/docs">Inspect the API</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a class="wordmark" href="/">
+        <span class="wordmark-mark">JP</span>
+        <span>SIGNALS</span>
+      </a>
+      <p>Source-traceable procurement data from Japan.</p>
+      <div class="footer-links">
+        <a href="/data-sources">Data sources</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/docs">API docs</a>
+      </div>
+    </footer>
+  </body>
+</html>
