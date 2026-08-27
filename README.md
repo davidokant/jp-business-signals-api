@@ -17,6 +17,9 @@ GET /v1/company-timeline?corporate_number=1234567890123&limit=50&offset=0
 GET /v1/procurement-signals?since=2026-08-20&q=software&prefecture=Tokyo
 GET /v1/tenders/search?q=cloud&prefecture=Tokyo&category=services
 GET /v1/company-tender-matches?corporate_number=1234567890123&q=cloud
+POST /v1/tender-fit-analysis
+GET /v1/buyer-intelligence?buyer=Digital%20Agency&q=cloud
+GET /v1/tender-changes?action=deadline_changed
 GET /v1/signals
 ```
 
@@ -24,7 +27,7 @@ The activity score is a transparent product metric based on observed public acti
 
 一个可运行的 API 市场 MVP：把有来源记录的日本企业公开资料整理为公司检索、企业详情、经营信号和活动时间线接口。
 
-当前版本默认装载**合成样本**，用于验证接口、定价和客户需求，不代表真实企业。真实 gBizINFO 数据接入必须使用申请获得的访问令牌，并遵守来源条款。
+本地开发默认装载**合成样本**，用于验证接口，不代表真实企业。生产部署使用官方 gBizINFO 与 KKJ 数据，并为每条记录保留来源；接入时必须使用获批令牌并遵守来源条款。
 
 ## 本地启动
 
@@ -48,16 +51,21 @@ X-API-Key: dev-local-key
 GET /health
 GET /demo/stats
 GET /demo/signals?q=Sakura&limit=6
+GET /demo/tender-readiness?q=cloud%20services
 GET /v1/companies/search
 GET /v1/companies/{corporate_number}
 GET /v1/companies/{corporate_number}/timeline
 GET /v1/procurement-signals
 GET /v1/tenders/search
+GET /v1/company-tender-matches
+POST /v1/tender-fit-analysis
+GET /v1/buyer-intelligence
+GET /v1/tender-changes
 GET /v1/signals
 GET /v1/sources
 ```
 
-`/demo/*` 无需密钥，按客户端 IP 限制为每分钟 60 次，供潜在用户先体验数据质量。页面中的套餐是上架草案；在支付平台和公开部署完成前不会收款。
+`/demo/*` 无需密钥；普通演示按客户端 IP 每分钟 60 次限流，访问官方招标源的 readiness 演示单独限制为每分钟 10 次。它只返回安全元数据和官方来源链接，不保存访客提交的能力关键词。
 
 示例：
 
@@ -71,9 +79,13 @@ Invoke-RestMethod `
 
 v1/tenders/search 为日本中小企业厅官公需信息门户的官方搜索 API 提供了安全的标准化入口。它仅返回适合产品展示的公告元数据与原始来源链接；不会转发公告全文、附件或可能出现的个人联系信息。
 
-`/v1/company-tender-matches` 将一家公司已登记的地区、公开采购活动和活动评分与指定能力关键词的官方招标结果结合，返回可解释的相关性评分与投标准备简报（截止日紧迫度、资格字段是否存在、数据完整度、下一步动作）。它不声称企业具备投标资格，也不预测中标。
+`/v1/company-tender-matches` 将一家公司已登记的地区、公开采购活动和活动评分与指定能力关键词的官方招标结果结合。`/v1/tender-fit-analysis` 接受一次性的能力、优先地区、持有资格和排除词档案；档案不落库。英文能力词会在本地确定性扩展为日文检索词，不调用生成式 AI。
 
-该功能默认关闭。启用前必须复核来源条款、在服务和 RapidAPI 页面标注来源与链接，并确认计划中的付费再分发方式符合运营方要求。详情和可直接发送的确认邮件见 docs/kkj-tender-source-review.md。
+匹配结果包含可解释评分、截止日紧迫度、资格匹配、数据完整度、下一步动作，以及 `review_now / monitor / qualification_gap / low_fit / expired / excluded` 机器可读状态。`/v1/buyer-intelligence` 聚合买方当前需求；`/v1/tender-changes` 返回 `new / updated / deadline_changed / expired` 事件。它们都不声称企业具备投标资格，也不预测中标。
+
+招标安全元数据保存在独立的 `tender-history.db`，不会被 gBizINFO 主库的原子替换刷新清除。每日工作流会按 `TENDER_WATCH_QUERIES` 观察有限主题并标记明确过期的公告；搜索结果暂时缺失不会被推断为删除或过期。
+
+该功能默认关闭。启用前必须复核来源条款、在服务和 RapidAPI 页面标注来源与链接，并控制访问频率。详情见 docs/kkj-tender-source-review.md。
 
 ## 数据导入
 

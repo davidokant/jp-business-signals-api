@@ -1,4 +1,4 @@
-name: Refresh gBizINFO data
+name: Refresh production data
 
 on:
   schedule:
@@ -35,6 +35,13 @@ jobs:
           --request POST
           --header "X-Refresh-Token: $APP_REFRESH_TOKEN"
           https://jp-business-signals-api-production.up.railway.app/internal/refresh-gbiz
+
+      - name: Observe tender topics and detect changes
+        run: >-
+          curl --fail --silent --show-error --max-time 300
+          --request POST
+          --header "X-Refresh-Token: $APP_REFRESH_TOKEN"
+          https://jp-business-signals-api-production.up.railway.app/internal/refresh-tenders
 
       - name: Verify the public data status
         shell: bash

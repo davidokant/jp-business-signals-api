@@ -84,13 +84,13 @@ class KkjClient:
         self,
         *,
         q: str,
-        buyer: str | None,
-        prefecture: str | None,
-        category: str | None,
-        published_from: date | None,
-        published_to: date | None,
-        limit: int,
-        offset: int,
+        buyer: str | None = None,
+        prefecture: str | None = None,
+        category: str | None = None,
+        published_from: date | None = None,
+        published_to: date | None = None,
+        limit: int = 25,
+        offset: int = 0,
     ) -> TenderSearchResponse:
         if published_from and published_to and published_from > published_to:
             raise ValueError("published_from must be on or before published_to")

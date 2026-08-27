@@ -13,6 +13,13 @@ def _as_bool(value: str | None, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _as_csv_tuple(value: str | None, default: tuple[str, ...]) -> tuple[str, ...]:
+    if value is None:
+        return default
+    items = tuple(dict.fromkeys(item.strip() for item in value.split(",") if item.strip()))
+    return items[:10]
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     environment: str
@@ -29,6 +36,14 @@ class Settings:
     kkj_api_enabled: bool = False
     kkj_base_url: str = "https://www.kkj.go.jp/api/"
     kkj_timeout_seconds: float = 20.0
+    kkj_request_interval_seconds: float = 0.5
+    tender_history_database_path: Path | None = None
+    tender_watch_queries: tuple[str, ...] = (
+        "cloud",
+        "cybersecurity",
+        "artificial intelligence",
+        "data analytics",
+    )
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> Settings:
@@ -68,4 +83,16 @@ class Settings:
             kkj_base_url=os.getenv("KKJ_BASE_URL", "https://www.kkj.go.jp/api/").rstrip("/")
             + "/",
             kkj_timeout_seconds=max(1.0, float(os.getenv("KKJ_TIMEOUT_SECONDS", "20"))),
+            kkj_request_interval_seconds=max(
+                0.0, float(os.getenv("KKJ_REQUEST_INTERVAL_SECONDS", "0.5"))
+            ),
+            tender_history_database_path=(
+                Path(value)
+                if (value := os.getenv("TENDER_HISTORY_DATABASE_PATH", "").strip())
+                else None
+            ),
+            tender_watch_queries=_as_csv_tuple(
+                os.getenv("TENDER_WATCH_QUERIES"),
+                ("cloud", "cybersecurity", "artificial intelligence", "data analytics"),
+            ),
         )

@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Japan company search and procurement signals API for supplier research, B2B sales intelligence, and market-entry products."
+      content="Match English capabilities to Japanese government tenders, readiness signals, company records, and source-traceable procurement data."
     />
     <link rel="canonical" href="https://jp-business-signals-api-production.up.railway.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="JP Signals — Japan Procurement Data API" />
     <meta
       property="og:description"
-      content="Japan procurement signals, ready for code. Search live, source-traceable public data before integrating."
+      content="Match English capabilities to Japanese government tenders with transparent readiness signals and official source links."
     />
     <meta property="og:image" content="/assets/jp-signals-og.png" />
     <meta property="og:image:width" content="1731" />
@@ -22,7 +22,7 @@
     <meta name="twitter:title" content="JP Signals — Japan Procurement Data API" />
     <meta
       name="twitter:description"
-      content="Japan procurement signals, ready for code."
+      content="English-to-Japan tender matching with transparent readiness signals."
     />
     <meta name="twitter:image" content="/assets/jp-signals-og.png" />
     <script type="application/ld+json">
@@ -32,7 +32,7 @@
         "name": "JP Business Signals API",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
-        "description": "Source-traceable Japanese company profiles and public procurement activity signals for developers.",
+        "description": "English-to-Japan tender matching, readiness signals, and source-traceable company procurement data for developers.",
         "url": "https://jp-business-signals-api-production.up.railway.app/",
         "offers": [
           { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -68,9 +68,9 @@
             <em>ready for code.</em>
           </h1>
           <p class="hero-text">
-            Search traceable company profiles and fresh government procurement
-            activity through one clean API. Every record keeps its official
-            source.
+            Match English capabilities to live Japanese government tenders,
+            inspect bid-readiness signals, and trace every result back to its
+            official source.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#demo">Explore live data</a>
@@ -98,12 +98,61 @@
       <section class="demo-section" id="demo">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">LIVE EXPLORER</p>
-            <h2>Start with a signal.</h2>
+            <p class="eyebrow">BID READINESS PREVIEW</p>
+            <h2>Describe what you sell.</h2>
           </div>
           <p>
-            Try the public dataset before writing a line of integration code.
-            Search is limited to twelve results per request.
+            Enter an English capability and see three relevant Japanese public
+            tenders with transparent readiness signals. No API key required.
+          </p>
+        </div>
+
+        <form class="search-bar readiness-search" id="readiness-form">
+          <label class="sr-only" for="capability-search">
+            Describe your company capability in English
+          </label>
+          <input
+            id="capability-search"
+            name="query"
+            minlength="2"
+            maxlength="100"
+            value="cloud services"
+            placeholder="Try: cybersecurity, cloud migration, data analytics"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Find tender matches</button>
+        </form>
+        <div class="capability-examples" aria-label="Example capabilities">
+          <span>Try an example:</span>
+          <button type="button" data-capability="cybersecurity">Cybersecurity</button>
+          <button type="button" data-capability="cloud migration">Cloud migration</button>
+          <button type="button" data-capability="data analytics">Data analytics</button>
+        </div>
+
+        <p class="result-status" id="readiness-status" role="status">
+          Loading tender readiness matches…
+        </p>
+        <div
+          class="readiness-grid"
+          id="readiness-grid"
+          aria-live="polite"
+          aria-busy="true"
+        ></div>
+        <p class="readiness-note">
+          Readiness signals summarize public metadata. They do not determine
+          supplier eligibility or predict an award.
+        </p>
+
+        <div class="explorer-divider" aria-hidden="true"></div>
+        <div class="section-heading explorer-heading">
+          <div>
+            <p class="eyebrow">LIVE PROCUREMENT DATA</p>
+            <h2>Inspect the source trail.</h2>
+          </div>
+          <p>
+            Search recent public procurement activity by company or title.
+            Results retain a direct link to the official source.
           </p>
         </div>
 
@@ -129,10 +178,10 @@
       </section>
 
       <section class="principle-strip">
-        <p>Built for developers, not data archaeology.</p>
+        <p>From English capability to an actionable Japan bid shortlist.</p>
         <ul>
           <li>Normalized JSON</li>
-          <li>Dated activity signals</li>
+          <li>Transparent readiness signals</li>
           <li>Source URL on every record</li>
         </ul>
       </section>

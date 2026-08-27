@@ -1,9 +1,74 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
 
 from jp_business_signals.config import Settings
 from jp_business_signals.main import create_app
+from jp_business_signals.schemas import TenderOpportunity, TenderSearchResponse
+
+
+class FakeKkjClient:
+    def __init__(self, **_: object) -> None:
+        pass
+
+    def __enter__(self) -> FakeKkjClient:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        pass
+
+    def search_tenders(
+        self,
+        *,
+        q: str,
+        buyer: str | None = None,
+        limit: int = 25,
+        offset: int = 0,
+        **_: object,
+    ) -> TenderSearchResponse:
+        now = datetime.now(UTC)
+        items = [
+            TenderOpportunity(
+                tender_id="official-001",
+                title_ja="クラウド基盤セキュリティ運用",
+                buyer=buyer or "デジタル庁",
+                prefecture="東京都",
+                city="千代田区",
+                category="services",
+                procedure_type="open tender",
+                qualification=["A"],
+                published_at=now - timedelta(days=1),
+                tender_submission_deadline=now + timedelta(days=5),
+                source_name="KKJ",
+                source_url="https://example.gov.jp/tenders/1",
+                source_license="Official source terms",
+                collected_at=now,
+            ),
+            TenderOpportunity(
+                tender_id="official-002",
+                title_ja="行政データ分析業務",
+                buyer=buyer or "デジタル庁",
+                prefecture="大阪府",
+                city="大阪市",
+                category="consulting",
+                procedure_type="open tender",
+                qualification=[],
+                published_at=now - timedelta(days=2),
+                tender_submission_deadline=now + timedelta(days=40),
+                source_name="KKJ",
+                source_url="https://example.gov.jp/tenders/2",
+                source_license="Official source terms",
+                collected_at=now,
+            ),
+        ]
+        return TenderSearchResponse(
+            items=items[offset : offset + limit],
+            count=len(items),
+            limit=limit,
+            offset=offset,
+        )
 
 
 def test_health_is_public(client) -> None:
@@ -177,6 +242,100 @@ def test_company_tender_matching_stays_disabled_until_source_confirmation(
     )
     assert response.status_code == 503
     assert response.json()["detail"] == "Tender opportunity source is not enabled yet"
+
+
+def test_tender_intelligence_chain_is_source_linked_and_machine_readable(
+    tmp_path, monkeypatch
+) -> None:
+    settings = Settings(
+        environment="test",
+        database_path=tmp_path / "enabled.db",
+        api_keys=frozenset({"test-key"}),
+        rapidapi_proxy_secret=None,
+        rate_limit_per_minute=100,
+        auto_seed_sample=True,
+        kkj_api_enabled=True,
+        kkj_request_interval_seconds=0,
+    )
+    monkeypatch.setattr("jp_business_signals.main.KkjClient", FakeKkjClient)
+    headers = {"X-API-Key": "test-key"}
+    with TestClient(create_app(settings)) as test_client:
+        fit = test_client.post(
+            "/v1/tender-fit-analysis",
+            headers=headers,
+            json={
+                "supplier_name": "Example Cloud Supplier",
+                "capabilities": ["cloud services"],
+                "preferred_prefectures": ["Tokyo"],
+                "held_qualifications": ["A"],
+                "excluded_keywords": ["construction"],
+                "limit": 5,
+            },
+        )
+        assert fit.status_code == 200
+        fit_payload = fit.json()
+        assert "クラウド" in fit_payload["expanded_queries"]
+        assert fit_payload["items"][0]["action_state"] == "review_now"
+        assert fit_payload["items"][0]["qualification_fit"] == "matched"
+        assert fit_payload["items"][0]["geographic_fit"] == "matched"
+        assert fit_payload["items"][0]["tender"]["source_url"]
+
+        buyer = test_client.get(
+            "/v1/buyer-intelligence",
+            params={"buyer": "Digital Agency", "q": "cloud services"},
+            headers=headers,
+        )
+        assert buyer.status_code == 200
+        buyer_payload = buyer.json()
+        assert buyer_payload["opportunities_found"] == 2
+        assert buyer_payload["urgent_opportunities"] == 1
+        assert buyer_payload["top_categories"]
+
+        demo = test_client.get(
+            "/demo/tender-readiness", params={"q": "cloud services"}
+        )
+        assert demo.status_code == 200
+        assert 1 <= demo.json()["count"] <= 3
+        assert demo.json()["items"][0]["source_url"]
+
+        changes = test_client.get(
+            "/v1/tender-changes", params={"action": "new"}, headers=headers
+        )
+        assert changes.status_code == 200
+        assert changes.json()["count"] == 2
+        assert {item["action"] for item in changes.json()["items"]} == {"new"}
+
+
+def test_daily_tender_refresh_uses_refresh_secret_and_persists_history(
+    tmp_path, monkeypatch
+) -> None:
+    settings = Settings(
+        environment="test",
+        database_path=tmp_path / "refresh-enabled.db",
+        api_keys=frozenset({"test-key"}),
+        rapidapi_proxy_secret=None,
+        rate_limit_per_minute=100,
+        auto_seed_sample=True,
+        refresh_token="refresh-secret",
+        kkj_api_enabled=True,
+        kkj_request_interval_seconds=0,
+        tender_watch_queries=("cloud", "cybersecurity"),
+    )
+    monkeypatch.setattr("jp_business_signals.main.KkjClient", FakeKkjClient)
+    with TestClient(create_app(settings)) as test_client:
+        assert test_client.post("/internal/refresh-tenders").status_code == 404
+        refresh = test_client.post(
+            "/internal/refresh-tenders",
+            headers={"X-Refresh-Token": "refresh-secret"},
+        )
+        assert refresh.status_code == 200
+        assert refresh.json()["tenders_observed"] == 2
+        assert refresh.json()["change_events_created"] == 2
+
+        changes = test_client.get(
+            "/v1/tender-changes", headers={"X-API-Key": "test-key"}
+        )
+        assert changes.json()["count"] == 2
 
 
 def test_sources_report_provenance(client, auth_headers) -> None:

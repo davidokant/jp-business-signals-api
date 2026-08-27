@@ -1,5 +1,5 @@
 候选市场评分表
-更新：2026年8月26日
+更新：2026年8月27日
 
 这张表不是市场规模的占卜。它只回答一件更实际的事：一个人能不能用合规的数据源，在三十天内做出英文自助购买的 API，并把它维持下去。
 
@@ -16,33 +16,44 @@
 没有在 RapidAPI 或独立落地页拿到连续十四天的真实搜索、订阅或试用信号，也不扩成第二个独立 API。
 
 候选                                                刚需30  来源25  增值20  英文自助15  运维10  总分  判定
-现有 JP Business Signals 的深挖与完善                26      21      17      13          8       85    继续优先做
-EU Tender Signals，基于 TED 官方采购公告搜索接口     25      23      18      14          8       88    第二个独立 API
-Japan Grants and Subsidy Signals                      21      14      17      11          6       69    暂不立项
-US Federal Contract Signals，基于 SAM.gov             24      18      17      15          5       79    列为第三候选
+US Federal Recompete & Supplier-Fit Signals           29      23      18      15          7       92    第二个独立 API
+现有 JP Business Signals 的深挖与完善                26      22      19      13          8       88    先完成并观察
+EU Tender Signals，基于 TED 官方采购公告搜索接口     25      23      18      14          7       87    第三候选
+美国上市公司通用事件信号                              29      22      10      15          5       81    竞争过密，暂缓
+中国采购＋企业信号                                    29       9      12       7          3       60    无书面授权不做
 泛行业网页抓取的潜客库                                22       8      13      14          3       60    排除
 
 这几分从哪里来
 TED 的官方 Search API 明说可供商业组织把公告检索、分析和再利用接入自己的平台，匿名访问也可以先做验证。它面对的是跨国采购和供应商研究，英语用户能一眼看懂用途。它的短板是数据模型复杂、国家差异大，所以没有给满分。
 
-SAM.gov 的公开机会接口同样有真实需求，而且英语市场更大；不过它要求 API key，公告的活跃与归档节奏也不同。第一人手有限时，这些接入和维护摩擦会吃掉时间，因此把它放在 TED 后面。
+美国联邦合同在 2025 财年约为 7927.7 亿美元，SAM 生态约有 78 万活跃注册实体、每月约 2 万个新机会。SAM.gov Opportunities 与 USAspending 都有官方 API，英文自助市场也最大。GovTribe、GovSpend 已经把原始搜索做得很成熟，所以第二个产品不能是 SAM 包装层；它必须复用当前项目刚完成的变更监控、供应商档案、买方洞察和机器可读行动状态，并加入 NAICS/PSC、set-aside、现任供应商与潜在续约信号。
+
+中国的绝对需求很大：2024 年政府采购规模约 3.375 万亿元人民币。但政府采购接口主要面向地方财政部门申请，主流企业数据 API 又有内部使用和禁止转售约束；跨境交付、本地平台资质与数据合规会把单人自助 API 的优势吃掉。没有逐字段书面授权和本地合作方之前不立项。
+
+美国上市公司数据虽然有免费的 SEC API，但通用事件信号竞争拥挤；一旦加入实时行情，还会进入交易所再分发许可与费用体系。它适合以后作为“上市政府承包商合同暴露”模块接入美国采购产品，而不是单独做第二个泛美股 API。
 
 日本补助金方向并非没有需求，问题在于当前已验证的上游端点返回 404。把空缺包装成产品，后来一定要补洞。这个项目先不碰。
 
 “泛爬虫潜客库”看着容易复制，实际上要逐站处理条款、robots、字段质量和投诉。它不是 API 生意，更像把风险拆成许多小账单。
 
 结论
-第二个独立 API 选 EU Tender Signals API。它的 MVP 只做三件事：按关键词、国家、CPV 和发布日期检索；把公告统一成稳定字段；为每条记录保留 TED 链接和采集时间。不要一开始承诺全欧洲实时覆盖，也不要加入受限来源。
+第二个独立 API 更新为 US Federal Contractor Recompete & Supplier-Fit Signals API。第一版不卖原始搜索，只卖公告修订与截止日变化、供应商能力和 NAICS/PSC/set-aside 匹配、买方采购偏好、现任供应商和潜在 recompete，以及 `review_now / monitor / low_fit / deadline_risk` 行动状态。EU Tender Signals 保留为第三候选。
 
 启动门槛
-先让 JP Business Signals 跑满十四天。观察每天的 RapidAPI 调用数、最常用路径、错误率和是否有人从免费额度进入付费页。十四天后，只要有十次以上非本人测试调用，且没有来源或费用异常，就启动 TED 的一周可行性验证；若没有，就先把 JP Signals 的搜索、详情和时间线打磨到有人愿意重复调用。
+先让升级后的 JP Business Signals 跑满十四天。观察公开演示转化、RapidAPI 非本人调用、最常用路径、错误率和是否有人进入付费套餐。十四天后，只要有十次以上非本人测试调用，且官方源、Railway 成本和变更历史没有异常，就启动美国产品的一周数据可行性验证；若没有，先根据真实搜索词修正公开演示和产品定位，而不是继续盲目横向复制。
 
 证据链接
 TED Search API：https://docs.ted.europa.eu/api/latest/search.html
 TED API 简介：https://docs.ted.europa.eu/api/latest/intro.html
 SAM.gov Opportunities API：https://open.gsa.gov/api/get-opportunities-public-api/
+USAspending API：https://api.usaspending.gov/
+美国联邦合同支出（GAO）：https://files.gao.gov/reports/GAO-26-108615/index.html
+SAM 生态规模（GSA）：https://www.gsa.gov/system/files/Acquisition%20Proposals_2025.pdf
+SEC EDGAR API：https://www.sec.gov/search-filings/edgar-application-programming-interfaces
+中国政府采购统计：https://gks.mof.gov.cn/tongjishuju/202511/t20251112_3976264.htm
+中国政府采购数据接口说明：https://www.ccgp.gov.cn/zcfg/mof/202403/t20240306_21605100.htm
+天眼查开放平台服务协议：https://open.tianyancha.com/property/protocol
 gBizINFO API 数据下载利用规约：https://help.info.gbiz.go.jp/hc/ja/articles/4999421139102-API-%E3%83%87%E3%83%BC%E3%82%BF%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89%E5%88%A9%E7%94%A8%E8%A6%8F%E7%B4%84
 RapidAPI monetization：https://docs.rapidapi.com/do/docs/monetizing-your-api-on-rapidapicom
 
 这些分数是立项排序，不是收入预测。来源政策、实际调用和买家反馈一变，分数也要跟着改。
-

@@ -37,6 +37,7 @@ not put secrets in Git.
 ```text
 APP_ENV=production
 APP_DATABASE_PATH=/app/data/production.db
+TENDER_HISTORY_DATABASE_PATH=/app/data/tender-history.db
 APP_AUTO_SEED_SAMPLE=false
 APP_RATE_LIMIT_PER_MINUTE=120
 APP_API_KEYS=<a-long-random-direct-api-key>
@@ -44,6 +45,12 @@ GBIZ_API_TOKEN=<your-gBizINFO-token>
 GBIZ_BASE_URL=https://api.info.gbiz.go.jp/hojin
 GBIZ_TIMEOUT_SECONDS=30
 GBIZ_REQUEST_INTERVAL_SECONDS=0.25
+KKJ_API_ENABLED=true
+KKJ_BASE_URL=https://www.kkj.go.jp/api/
+KKJ_TIMEOUT_SECONDS=20
+KKJ_REQUEST_INTERVAL_SECONDS=0.5
+TENDER_WATCH_QUERIES=cloud,cybersecurity,artificial intelligence,data analytics
+APP_REFRESH_TOKEN=<the-same-random-secret-stored-in-GitHub>
 ```
 
 Leave `APP_RAPIDAPI_PROXY_SECRET` unset until RapidAPI supplies the production
@@ -86,7 +93,8 @@ the public base URL and production proxy secret in RapidAPI.
 ## Refresh workflow
 
 The repository includes a GitHub Actions workflow at
-`.github/workflows/refresh-gbiz.yml`. It runs once per day at 18:17 UTC
+`.github/workflows/refresh-gbiz.yml`. It refreshes gBizINFO and then observes the
+configured tender topics once per day at 18:17 UTC
 (approximately 03:17 JST the following day; GitHub may delay scheduled jobs)
 and can also be started manually. The job is serialized so two refreshes cannot
 run at the same time.
@@ -95,20 +103,14 @@ Use the existing GitHub `resourceful-recreation / production` environment and
 add these environment secrets:
 
 ```text
-RAILWAY_TOKEN=<project-scoped Railway token>
-RAILWAY_PROJECT_ID=<Railway project ID>
-RAILWAY_SERVICE_ID=<Railway API service ID>
-GBIZ_API_TOKEN=<your-gBizINFO-token>
+APP_REFRESH_TOKEN=<same value as the Railway variable>
 ```
 
-The workflow downloads the current production database, copies the previous
-version to `/production.backup.db` on the same Railway Volume, imports an
-overlapping eight-day window of official data, checks SQLite integrity and
-non-empty coverage, uploads the refreshed database, restarts the API, and
-validates the public `/status` endpoint. The overlap helps catch delayed source
-updates. A failed import or integrity check stops before the production database
-is overwritten. The rolling backup is overwritten only after the next scheduled
-run starts.
+The workflow calls two token-protected production endpoints. The gBizINFO route
+performs the atomic company database refresh. The tender route queries the small
+configured watch list, writes safe snapshots and explicit changes to the separate
+`tender-history.db`, and marks expiry only from a known deadline. A temporary
+absence from a filtered or paginated response is never treated as deletion.
 
 For unattended refreshes, do not add a required-reviewer protection rule to the
 GitHub `resourceful-recreation / production` environment; such a rule leaves scheduled jobs waiting for
