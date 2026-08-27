@@ -145,6 +145,22 @@ def test_signal_filters(client, auth_headers) -> None:
     assert payload["items"][0]["signal_type"] == "procurement"
 
 
+def test_procurement_signal_feed_adds_supplier_context(client, auth_headers) -> None:
+    response = client.get(
+        "/v1/procurement-signals",
+        params={"since": "2026-08-19", "q": "award", "prefecture": "Tokyo"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    item = payload["items"][0]
+    assert item["signal_type"] == "procurement"
+    assert item["company_name"] == "Sakura Industrial Systems (Synthetic)"
+    assert item["prefecture"] == "Tokyo"
+    assert item["source_url"]
+
+
 def test_sources_report_provenance(client, auth_headers) -> None:
     response = client.get("/v1/sources", headers=auth_headers)
     assert response.status_code == 200

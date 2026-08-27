@@ -14,6 +14,7 @@ Core endpoints for product integration:
 GET /v1/companies/search
 GET /v1/company-details?corporate_number=1234567890123
 GET /v1/company-timeline?corporate_number=1234567890123&limit=50&offset=0
+GET /v1/procurement-signals?since=2026-08-20&q=software&prefecture=Tokyo
 GET /v1/signals
 ```
 
@@ -48,6 +49,7 @@ GET /demo/signals?q=Sakura&limit=6
 GET /v1/companies/search
 GET /v1/companies/{corporate_number}
 GET /v1/companies/{corporate_number}/timeline
+GET /v1/procurement-signals
 GET /v1/signals
 GET /v1/sources
 ```

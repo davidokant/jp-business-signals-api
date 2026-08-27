@@ -6,7 +6,15 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .schemas import Company, DemoSignal, DemoStats, PublicDataStatus, Signal, SourceSummary
+from .schemas import (
+    Company,
+    DemoSignal,
+    DemoStats,
+    ProcurementSignal,
+    PublicDataStatus,
+    Signal,
+    SourceSummary,
+)
 from .scoring import calculate_activity_score
 
 SCHEMA = """
@@ -282,6 +290,45 @@ class Repository:
         with self.connect() as connection:
             rows = connection.execute(query, params).fetchall()
         return [Signal.model_validate(dict(row)) for row in rows]
+
+    def search_procurement_signals(
+        self,
+        *,
+        since: date | None,
+        q: str | None,
+        prefecture: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[ProcurementSignal]:
+        """Return procurement events with company context for monitoring workflows."""
+        clauses = ["s.signal_type = 'procurement'"]
+        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        if since:
+            clauses.append("s.occurred_on >= :since")
+            params["since"] = since.isoformat()
+        if q:
+            clauses.append("(c.name LIKE :q OR s.title LIKE :q)")
+            params["q"] = f"%{q}%"
+        if prefecture:
+            clauses.append("LOWER(COALESCE(c.prefecture, '')) = LOWER(:prefecture)")
+            params["prefecture"] = prefecture
+
+        query = f"""
+            SELECT
+                s.*,
+                c.name AS company_name,
+                c.prefecture,
+                c.industry,
+                c.activity_score
+            FROM signals AS s
+            JOIN companies AS c ON c.corporate_number = s.corporate_number
+            WHERE {" AND ".join(clauses)}
+            ORDER BY s.occurred_on DESC, s.id DESC
+            LIMIT :limit OFFSET :offset
+        """
+        with self.connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [ProcurementSignal.model_validate(dict(row)) for row in rows]
 
     def list_sources(self) -> list[SourceSummary]:
         query = """

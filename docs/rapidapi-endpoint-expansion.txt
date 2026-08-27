@@ -108,3 +108,39 @@ offset：INTEGER，可选。Pagination offset. Default: 0.
 操作次序
 每个端点先填 Name、Description 和 Path，再分别在 Query 或 Path 页面添加参数。Example Responses 如尚无 200，点 Add New Response Code，选 200，再填 Body。每个端点最后只需点一次 Save。
 
+端点四（建议作为产品主推端点）
+Name：Search Procurement & Supplier Signals
+Description：Search source-traceable Japanese public procurement signals with supplier name, location, industry, activity score, collection time, and official source URL. Built for Japan market-entry research and supplier monitoring.
+Path：/v1/procurement-signals
+
+Query 参数
+since：STRING，可选。Only return events on or after YYYY-MM-DD.
+q：STRING，可选。Search supplier name or procurement title.
+prefecture：STRING，可选。Japanese prefecture name, for example Tokyo.
+limit：INTEGER，可选。Results per page, from 1 to 200. Default: 50.
+offset：INTEGER，可选。Pagination offset. Default: 0.
+
+200 Example Response，Media Type 选 application/json，在 Body 中粘贴：
+{
+  "items": [
+    {
+      "id": 1,
+      "source_name": "gBizINFO",
+      "source_url": "https://info.gbiz.go.jp/",
+      "source_license": "Official gBizINFO API terms",
+      "collected_at": "2026-08-26T00:00:00Z",
+      "corporate_number": "1234567890123",
+      "signal_type": "procurement",
+      "title": "Public procurement: Example software services contract",
+      "occurred_on": "2026-08-20",
+      "score_delta": 5,
+      "company_name": "Example Japan Co., Ltd.",
+      "prefecture": "Tokyo",
+      "industry": "Information services",
+      "activity_score": 72
+    }
+  ],
+  "count": 1,
+  "limit": 50,
+  "offset": 0
+}

@@ -20,6 +20,7 @@ from .schemas import (
     CompanySearchResponse,
     DemoSignalResponse,
     DemoStats,
+    ProcurementSignalListResponse,
     PublicDataStatus,
     SignalListResponse,
     SourceListResponse,
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_tags=[
             {"name": "companies", "description": "Company search and profiles"},
             {"name": "signals", "description": "Time-ordered public activity signals"},
+            {"name": "procurement", "description": "Supplier-screening procurement event feed"},
             {"name": "sources", "description": "Data provenance and license summaries"},
         ],
     )
@@ -250,6 +252,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             corporate_number=corporate_number,
             limit=limit,
             offset=offset,
+        )
+
+    @app.get(
+        "/v1/procurement-signals",
+        response_model=ProcurementSignalListResponse,
+        tags=["procurement"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def search_procurement_signals(
+        since: date | None = None,
+        q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
+        prefecture: Annotated[str | None, Query(min_length=1, max_length=100)] = None,
+        limit: Annotated[int, Query(ge=1, le=200)] = 50,
+        offset: Annotated[int, Query(ge=0, le=100_000)] = 0,
+    ) -> ProcurementSignalListResponse:
+        """Search source-traceable procurement events with supplier context."""
+        items = repository.search_procurement_signals(
+            since=since,
+            q=q,
+            prefecture=prefecture,
+            limit=limit,
+            offset=offset,
+        )
+        return ProcurementSignalListResponse(
+            items=items, count=len(items), limit=limit, offset=offset
         )
 
     @app.get(

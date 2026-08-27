@@ -52,6 +52,22 @@ class SignalListResponse(BaseModel):
     offset: int
 
 
+class ProcurementSignal(Signal):
+    """A procurement event enriched with the supplier profile needed for screening."""
+
+    company_name: str = Field(min_length=1, max_length=300)
+    prefecture: str | None = Field(default=None, max_length=100)
+    industry: str | None = Field(default=None, max_length=200)
+    activity_score: int = Field(ge=0, le=100)
+
+
+class ProcurementSignalListResponse(BaseModel):
+    items: list[ProcurementSignal]
+    count: int
+    limit: int
+    offset: int
+
+
 class TimelineResponse(BaseModel):
     corporate_number: str
     company_name: str
