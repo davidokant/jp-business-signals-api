@@ -68,6 +68,30 @@ class ProcurementSignalListResponse(BaseModel):
     offset: int
 
 
+class TenderOpportunity(SourceRecord):
+    """A safe, source-linked public tender opportunity from the KKJ portal."""
+
+    tender_id: str = Field(min_length=1, max_length=500)
+    title_ja: str = Field(min_length=1, max_length=1000)
+    buyer: str | None = Field(default=None, max_length=500)
+    prefecture: str | None = Field(default=None, max_length=100)
+    city: str | None = Field(default=None, max_length=200)
+    category: str | None = Field(default=None, max_length=100)
+    procedure_type: str | None = Field(default=None, max_length=200)
+    qualification: list[str] = Field(default_factory=list)
+    published_at: datetime | None = None
+    tender_submission_deadline: datetime | None = None
+    opening_tenders_at: datetime | None = None
+    delivery_due_at: datetime | None = None
+
+
+class TenderSearchResponse(BaseModel):
+    items: list[TenderOpportunity]
+    count: int = Field(ge=0, description="Total hits reported by the official source")
+    limit: int
+    offset: int
+
+
 class TimelineResponse(BaseModel):
     corporate_number: str
     company_name: str

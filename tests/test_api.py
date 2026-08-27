@@ -161,6 +161,12 @@ def test_procurement_signal_feed_adds_supplier_context(client, auth_headers) -> 
     assert item["source_url"]
 
 
+def test_tender_search_stays_disabled_until_source_confirmation(client, auth_headers) -> None:
+    response = client.get("/v1/tenders/search", params={"q": "cloud"}, headers=auth_headers)
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Tender opportunity source is not enabled yet"
+
+
 def test_sources_report_provenance(client, auth_headers) -> None:
     response = client.get("/v1/sources", headers=auth_headers)
     assert response.status_code == 200

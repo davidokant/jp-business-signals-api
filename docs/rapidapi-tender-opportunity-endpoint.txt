@@ -1,0 +1,50 @@
+Name: Search Japan Government Tender Opportunities
+
+Description:
+Search official Japanese public tender opportunities before award. Results include the Japanese tender title, buyer, geography, category, procedure, qualification, available dates, official source URL, source attribution, and retrieval time. Announcement text and attachments are deliberately excluded.
+
+Path:
+/v1/tenders/search
+
+Method:
+GET
+
+Query parameters:
+q: STRING, required. Tender search terms. Example: cloud.
+buyer: STRING, optional. Buyer or agency name.
+prefecture: STRING, optional. English or Japanese prefecture name, or two-digit JIS code. Example: Tokyo.
+category: STRING, optional. One of goods, construction, services.
+published_from: DATE, optional. ISO date, inclusive.
+published_to: DATE, optional. ISO date, inclusive.
+limit: NUMBER, optional. Default 25, maximum 100.
+offset: NUMBER, optional. Default 0, maximum 900.
+
+200 response example:
+{
+  "items": [
+    {
+      "tender_id": "official-source-key",
+      "title_ja": "クラウド移行業務",
+      "buyer": "デジタル庁",
+      "prefecture": "東京都",
+      "city": null,
+      "category": "役務",
+      "procedure_type": "一般競争入札",
+      "qualification": ["A", "B"],
+      "published_at": "2026-08-24T00:00:00+09:00",
+      "tender_submission_deadline": "2026-09-14T17:00:00+09:00",
+      "opening_tenders_at": null,
+      "delivery_due_at": null,
+      "source_name": "Japan Public Procurement Information Portal (KKJ)",
+      "source_url": "https://example.gov.jp/tender/1",
+      "source_license": "KKJ Search API Terms: identify the source and link to the portal; rate limits and current terms apply",
+      "collected_at": "2026-08-27T00:00:00Z"
+    }
+  ],
+  "count": 1,
+  "limit": 25,
+  "offset": 0
+}
+
+Publishing rule:
+Do not publish this endpoint or enable its production setting until the KKJ portal operator confirms that normalized metadata may be served by a paid API. See docs/kkj-tender-source-review.md.

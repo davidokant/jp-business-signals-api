@@ -11,6 +11,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .adapters.kkj import KkjClient, KkjError
 from .config import Settings
 from .dataset import load_dataset, sample_dataset_path
 from .refresh import refresh_gbiz_database
@@ -24,6 +25,7 @@ from .schemas import (
     PublicDataStatus,
     SignalListResponse,
     SourceListResponse,
+    TenderSearchResponse,
     TimelineResponse,
 )
 from .security import ApiAuthenticator, FixedWindowRateLimiter
@@ -58,6 +60,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             {"name": "companies", "description": "Company search and profiles"},
             {"name": "signals", "description": "Time-ordered public activity signals"},
             {"name": "procurement", "description": "Supplier-screening procurement event feed"},
+            {
+                "name": "tenders",
+                "description": "Official Japanese public tender opportunity search",
+            },
             {"name": "sources", "description": "Data provenance and license summaries"},
         ],
     )
@@ -278,6 +284,54 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return ProcurementSignalListResponse(
             items=items, count=len(items), limit=limit, offset=offset
         )
+
+    @app.get(
+        "/v1/tenders/search",
+        response_model=TenderSearchResponse,
+        tags=["tenders"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def search_tenders(
+        q: Annotated[str, Query(min_length=2, max_length=200)],
+        buyer: Annotated[str | None, Query(min_length=2, max_length=300)] = None,
+        prefecture: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
+        category: Annotated[str | None, Query(min_length=2, max_length=20)] = None,
+        published_from: date | None = None,
+        published_to: date | None = None,
+        limit: Annotated[int, Query(ge=1, le=100)] = 25,
+        offset: Annotated[int, Query(ge=0, le=900)] = 0,
+    ) -> TenderSearchResponse:
+        """Search source-linked public tenders; source free text and attachments are excluded."""
+        if not resolved_settings.kkj_api_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tender opportunity source is not enabled yet",
+            )
+        try:
+            with KkjClient(
+                base_url=resolved_settings.kkj_base_url,
+                timeout_seconds=resolved_settings.kkj_timeout_seconds,
+            ) as client:
+                return client.search_tenders(
+                    q=q,
+                    buyer=buyer,
+                    prefecture=prefecture,
+                    category=category,
+                    published_from=published_from,
+                    published_to=published_to,
+                    limit=limit,
+                    offset=offset,
+                )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(exc),
+            ) from exc
+        except KkjError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Official tender source is temporarily unavailable",
+            ) from exc
 
     @app.get(
         "/v1/signals",

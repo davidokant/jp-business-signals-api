@@ -26,6 +26,9 @@ class Settings:
     gbiz_timeout_seconds: float = 30.0
     gbiz_request_interval_seconds: float = 0.25
     refresh_token: str | None = None
+    kkj_api_enabled: bool = False
+    kkj_base_url: str = "https://www.kkj.go.jp/api/"
+    kkj_timeout_seconds: float = 20.0
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> Settings:
@@ -61,4 +64,8 @@ class Settings:
                 0.0, float(os.getenv("GBIZ_REQUEST_INTERVAL_SECONDS", "0.25"))
             ),
             refresh_token=os.getenv("APP_REFRESH_TOKEN", "").strip() or None,
+            kkj_api_enabled=_as_bool(os.getenv("KKJ_API_ENABLED"), False),
+            kkj_base_url=os.getenv("KKJ_BASE_URL", "https://www.kkj.go.jp/api/").rstrip("/")
+            + "/",
+            kkj_timeout_seconds=max(1.0, float(os.getenv("KKJ_TIMEOUT_SECONDS", "20"))),
         )
