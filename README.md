@@ -20,6 +20,7 @@ GET /v1/company-tender-matches?corporate_number=1234567890123&q=cloud
 POST /v1/tender-fit-analysis
 GET /v1/buyer-intelligence?buyer=Digital%20Agency&q=cloud
 GET /v1/tender-changes?action=deadline_changed
+GET /v1/tender-digest
 GET /v1/signals
 ```
 
@@ -61,6 +62,7 @@ GET /v1/company-tender-matches
 POST /v1/tender-fit-analysis
 GET /v1/buyer-intelligence
 GET /v1/tender-changes
+GET /v1/tender-digest
 GET /v1/signals
 GET /v1/sources
 ```
@@ -82,6 +84,8 @@ v1/tenders/search 为日本中小企业厅官公需信息门户的官方搜索 A
 `/v1/company-tender-matches` 将一家公司已登记的地区、公开采购活动和活动评分与指定能力关键词的官方招标结果结合。`/v1/tender-fit-analysis` 接受一次性的能力、优先地区、持有资格和排除词档案；档案不落库。英文能力词会在本地确定性扩展为日文检索词，不调用生成式 AI。
 
 匹配结果包含可解释评分、截止日紧迫度、资格匹配、数据完整度、下一步动作，以及 `review_now / monitor / qualification_gap / low_fit / expired / excluded` 机器可读状态。`/v1/buyer-intelligence` 聚合买方当前需求；`/v1/tender-changes` 返回 `new / updated / deadline_changed / expired` 事件。它们都不声称企业具备投标资格，也不预测中标。
+
+`/v1/tender-digest` 是给自动化客户端的增量工作摘要：默认覆盖最近 24 小时，按事件类型汇总、标记 7 日内的截止日变更，并给每个事件提供可执行建议。调用方将 `next_since` 作为下次请求的包含式 `since` 值，并按 `event_id` 去重，即不会遗漏同一时间戳发生的事件。
 
 招标安全元数据保存在独立的 `tender-history.db`，不会被 gBizINFO 主库的原子替换刷新清除。每日工作流会按 `TENDER_WATCH_QUERIES` 观察有限主题并标记明确过期的公告；搜索结果暂时缺失不会被推断为删除或过期。
 

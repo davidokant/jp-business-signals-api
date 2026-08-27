@@ -209,6 +209,26 @@ class TenderChangeListResponse(BaseModel):
     offset: int = Field(ge=0)
 
 
+class TenderDigestAction(BaseModel):
+    event_id: int = Field(ge=1)
+    action: TenderChangeAction
+    recommendation: str
+
+
+class TenderMonitoringDigestResponse(BaseModel):
+    """A polling-safe operational summary of observed tender changes."""
+
+    window_started_at: datetime
+    generated_at: datetime
+    next_since: datetime | None = None
+    items: list[TenderChangeEvent]
+    count: int = Field(ge=0)
+    action_counts: dict[TenderChangeAction, int]
+    urgent_deadline_changes: int = Field(ge=0)
+    recommended_actions: list[TenderDigestAction]
+    polling_note: str
+
+
 class TenderMonitoringRefreshResponse(BaseModel):
     queries: list[str]
     tenders_observed: int = Field(ge=0)

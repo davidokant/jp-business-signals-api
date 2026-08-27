@@ -291,19 +291,23 @@ def test_tender_intelligence_chain_is_source_linked_and_machine_readable(
         assert buyer_payload["urgent_opportunities"] == 1
         assert buyer_payload["top_categories"]
 
-        demo = test_client.get(
-            "/demo/tender-readiness", params={"q": "cloud services"}
-        )
+        demo = test_client.get("/demo/tender-readiness", params={"q": "cloud services"})
         assert demo.status_code == 200
         assert 1 <= demo.json()["count"] <= 3
         assert demo.json()["items"][0]["source_url"]
 
-        changes = test_client.get(
-            "/v1/tender-changes", params={"action": "new"}, headers=headers
-        )
+        changes = test_client.get("/v1/tender-changes", params={"action": "new"}, headers=headers)
         assert changes.status_code == 200
         assert changes.json()["count"] == 2
         assert {item["action"] for item in changes.json()["items"]} == {"new"}
+
+        digest = test_client.get("/v1/tender-digest", headers=headers)
+        assert digest.status_code == 200
+        digest_payload = digest.json()
+        assert digest_payload["count"] >= 2
+        assert digest_payload["action_counts"]["new"] >= 2
+        assert digest_payload["next_since"]
+        assert all(item["recommendation"] for item in digest_payload["recommended_actions"])
 
 
 def test_daily_tender_refresh_uses_refresh_secret_and_persists_history(
@@ -332,9 +336,7 @@ def test_daily_tender_refresh_uses_refresh_secret_and_persists_history(
         assert refresh.json()["tenders_observed"] == 2
         assert refresh.json()["change_events_created"] == 2
 
-        changes = test_client.get(
-            "/v1/tender-changes", headers={"X-API-Key": "test-key"}
-        )
+        changes = test_client.get("/v1/tender-changes", headers={"X-API-Key": "test-key"})
         assert changes.json()["count"] == 2
 
 

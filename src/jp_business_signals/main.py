@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from secrets import compare_digest
 from threading import Lock
@@ -37,6 +37,7 @@ from .schemas import (
     TenderChangeAction,
     TenderChangeListResponse,
     TenderFitAnalysisResponse,
+    TenderMonitoringDigestResponse,
     TenderMonitoringRefreshResponse,
     TenderOpportunity,
     TenderSearchResponse,
@@ -170,9 +171,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ) from exc
 
         with tender_history_lock:
-            results = tender_history.upsert_many(
-                by_id.values(), observed_at=datetime.now(UTC)
-            )
+            results = tender_history.upsert_many(by_id.values(), observed_at=datetime.now(UTC))
         events_created = sum(len(result.actions) for result in results)
         return list(by_id.values()), events_created
 
@@ -503,9 +502,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     offset=offset,
                 )
                 with tender_history_lock:
-                    tender_history.upsert_many(
-                        response.items, observed_at=datetime.now(UTC)
-                    )
+                    tender_history.upsert_many(response.items, observed_at=datetime.now(UTC))
                 return response
         except ValueError as exc:
             raise HTTPException(
@@ -657,16 +654,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             search_query=q,
             expanded_queries=list(queries),
             opportunities_found=len(selected),
-            urgent_opportunities=sum(
-                item.deadline_urgency == "urgent" for item in readiness
-            ),
+            urgent_opportunities=sum(item.deadline_urgency == "urgent" for item in readiness),
             top_categories=[
-                FacetCount(value=value, count=count)
-                for value, count in categories.most_common(5)
+                FacetCount(value=value, count=count) for value, count in categories.most_common(5)
             ],
             top_prefectures=[
-                FacetCount(value=value, count=count)
-                for value, count in prefectures.most_common(5)
+                FacetCount(value=value, count=count) for value, count in prefectures.most_common(5)
             ],
             latest_published_at=max(published_dates) if published_dates else None,
             opportunities=selected,
@@ -721,6 +714,76 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     @app.get(
+        "/v1/tender-digest",
+        response_model=TenderMonitoringDigestResponse,
+        tags=["intelligence"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def tender_digest(
+        since: datetime | None = None,
+        limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    ) -> TenderMonitoringDigestResponse:
+        """Return an actionable incremental tender-monitoring digest for polling clients."""
+        generated_at = datetime.now(UTC)
+        window_started_at = since or generated_at - timedelta(days=1)
+        try:
+            changes = tender_history.list_changes(
+                since=window_started_at,
+                limit=limit,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(exc),
+            ) from exc
+
+        items = [
+            {
+                "id": change.id,
+                "tender_id": change.tender_id,
+                "action": change.action,
+                "occurred_at": change.occurred_at,
+                "changed_fields": list(change.changed_fields),
+                "tender": change.tender,
+                "first_seen_at": change.first_seen_at,
+                "last_seen_at": change.last_seen_at,
+            }
+            for change in changes
+        ]
+        action_counts = Counter(change.action for change in changes)
+        urgent_deadline_changes = sum(
+            change.action == "deadline_changed"
+            and change.tender.tender_submission_deadline is not None
+            and change.tender.tender_submission_deadline <= generated_at + timedelta(days=7)
+            for change in changes
+        )
+        next_since = max((change.occurred_at for change in changes), default=None)
+        return TenderMonitoringDigestResponse(
+            window_started_at=window_started_at,
+            generated_at=generated_at,
+            next_since=next_since,
+            items=items,
+            count=len(items),
+            action_counts={
+                action: action_counts.get(action, 0)
+                for action in ("new", "updated", "deadline_changed", "expired")
+            },
+            urgent_deadline_changes=urgent_deadline_changes,
+            recommended_actions=[
+                {
+                    "event_id": change.id,
+                    "action": change.action,
+                    "recommendation": _tender_change_recommendation(change.action),
+                }
+                for change in changes
+            ],
+            polling_note=(
+                "Use next_since as the next inclusive since value and de-duplicate by event id; "
+                "inclusive polling avoids missing events with identical timestamps."
+            ),
+        )
+
+    @app.get(
         "/v1/signals",
         response_model=SignalListResponse,
         tags=["signals"],
@@ -751,6 +814,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return SourceListResponse(items=repository.list_sources())
 
     return app
+
+
+def _tender_change_recommendation(action: TenderChangeAction) -> str:
+    return {
+        "new": "Review the official notice and decide whether to qualify the opportunity.",
+        "updated": "Review the changed official fields before continuing bid preparation.",
+        "deadline_changed": "Recheck the official deadline and reprioritize any active bid work.",
+        "expired": (
+            "Close or archive the opportunity unless the official source announces an extension."
+        ),
+    }[action]
 
 
 app = create_app()
