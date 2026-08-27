@@ -30,6 +30,11 @@ jobs:
           test -n "$APP_REFRESH_TOKEN" || { echo "Missing APP_REFRESH_TOKEN" >&2; exit 1; }
 
       - name: Request the atomic production refresh
+        # Railway can restart the worker after the atomic database replacement
+        # even after the refresh has completed. Continue to the independent
+        # tender-monitoring request and let the public status check verify
+        # availability at the end of the run.
+        continue-on-error: true
         run: >-
           curl --fail-with-body --silent --show-error --max-time 900
           --request POST

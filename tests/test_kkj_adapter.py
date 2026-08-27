@@ -83,3 +83,27 @@ def test_search_rejects_source_errors() -> None:
                 limit=10,
                 offset=0,
             )
+
+
+def test_search_skips_record_with_invalid_official_source_url() -> None:
+    malformed = SAMPLE_XML.replace(
+        b"https://example.gov.jp/tender/1", b"01"
+    )
+    with KkjClient(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, content=malformed)
+        )
+    ) as client:
+        result = client.search_tenders(
+            q="cloud",
+            buyer=None,
+            prefecture=None,
+            category=None,
+            published_from=None,
+            published_to=None,
+            limit=10,
+            offset=0,
+        )
+
+    assert result.count == 3
+    assert result.items == []

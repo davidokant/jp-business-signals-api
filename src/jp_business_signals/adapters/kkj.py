@@ -5,6 +5,7 @@ from typing import Final
 from xml.etree import ElementTree
 
 import httpx
+from pydantic import ValidationError
 
 from ..schemas import TenderOpportunity, TenderSearchResponse
 
@@ -127,10 +128,15 @@ def _parse_response(content: bytes, *, limit: int, offset: int) -> TenderSearchR
         raise KkjError("Official tender source response does not contain search results")
     total = _nonnegative_int(_text(search_results.find("SearchHits")))
     collected_at = datetime.now(tz=UTC)
-    records = [
-        _to_tender(result, collected_at=collected_at)
-        for result in search_results.findall("SearchResult")
-    ]
+    records: list[TenderOpportunity] = []
+    for result in search_results.findall("SearchResult"):
+        try:
+            records.append(_to_tender(result, collected_at=collected_at))
+        except ValidationError:
+            # The official feed occasionally contains an incomplete or invalid
+            # external-document URL. Do not expose a record without a safe,
+            # traceable source link, but keep the rest of the search usable.
+            continue
     return TenderSearchResponse(
         items=records[offset : offset + limit], count=total, limit=limit, offset=offset
     )
