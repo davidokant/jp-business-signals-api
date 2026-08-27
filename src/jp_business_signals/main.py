@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from secrets import compare_digest
 from threading import Lock
@@ -384,7 +384,49 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 score += min(company.procurement_count, 10)
                 reasons.append("Supplier has recorded public-procurement activity")
             score += min(company.activity_score // 10, 10)
-            matches.append((score, tender.tender_id, tender, reasons[:5]))
+            deadline_urgency = "unknown"
+            days_to_deadline = None
+            if tender.tender_submission_deadline:
+                deadline = tender.tender_submission_deadline.astimezone(UTC).date()
+                days_to_deadline = (deadline - datetime.now(UTC).date()).days
+                deadline_urgency = (
+                    "expired" if days_to_deadline < 0 else "urgent" if days_to_deadline <= 7
+                    else "upcoming" if days_to_deadline <= 30 else "open"
+                )
+            geographic_fit = "unknown"
+            if company.prefecture and tender.prefecture:
+                geographic_fit = (
+                    "matched" if company.prefecture.casefold() == tender.prefecture.casefold()
+                    else "different"
+                )
+            completeness_fields = (
+                tender.buyer,
+                tender.prefecture,
+                tender.category,
+                tender.published_at,
+                tender.tender_submission_deadline,
+            )
+            completeness = round(sum(value is not None for value in completeness_fields) * 100 / 5)
+            next_actions = ["Review the official source URL and tender notice"]
+            if tender.qualification:
+                next_actions.append("Verify the listed qualification requirements")
+            else:
+                next_actions.append("Confirm participation requirements with the buyer")
+            if deadline_urgency == "urgent":
+                next_actions.append("Confirm the submission deadline immediately")
+            matches.append(
+                (
+                    score,
+                    tender.tender_id,
+                    tender,
+                    reasons[:5],
+                    deadline_urgency,
+                    days_to_deadline,
+                    geographic_fit,
+                    completeness,
+                    next_actions,
+                )
+            )
         matches.sort(key=lambda item: (-item[0], item[1]))
         return CompanyTenderMatchResponse(
             company=company,
@@ -394,15 +436,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "tender": tender,
                     "match_score": min(score, 100),
                     "match_reasons": reasons,
+                    "deadline_urgency": urgency,
+                    "days_to_deadline": days,
+                    "geographic_fit": geography,
+                    "qualification_present": bool(tender.qualification),
+                    "data_completeness": completeness,
+                    "next_actions": next_actions,
                 }
-                for score, _, tender, reasons in matches
+                for (
+                    score,
+                    _,
+                    tender,
+                    reasons,
+                    urgency,
+                    days,
+                    geography,
+                    completeness,
+                    next_actions,
+                ) in matches
             ],
             count=len(matches),
             methodology=(
                 "Transparent rule-based ranking: requested capability keyword, "
                 "supplier/tender prefecture alignment, title keyword occurrence, "
                 "recorded procurement activity, and supplier activity score. "
-                "Scores are relevance indicators, not eligibility or award predictions."
+                "Scores and readiness fields are decision-support indicators, "
+                "not eligibility or award predictions."
             ),
         )
 

@@ -98,6 +98,12 @@ class TenderMatch(BaseModel):
     tender: TenderOpportunity
     match_score: int = Field(ge=0, le=100)
     match_reasons: list[str] = Field(min_length=1, max_length=5)
+    deadline_urgency: str = Field(pattern=r"^(unknown|expired|urgent|upcoming|open)$")
+    days_to_deadline: int | None = None
+    geographic_fit: str = Field(pattern=r"^(matched|different|unknown)$")
+    qualification_present: bool
+    data_completeness: int = Field(ge=0, le=100)
+    next_actions: list[str] = Field(min_length=1, max_length=5)
 
 
 class CompanyTenderMatchResponse(BaseModel):
