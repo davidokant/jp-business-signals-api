@@ -16,6 +16,7 @@ GET /v1/company-details?corporate_number=1234567890123
 GET /v1/company-timeline?corporate_number=1234567890123&limit=50&offset=0
 GET /v1/procurement-signals?since=2026-08-20&q=software&prefecture=Tokyo
 GET /v1/tenders/search?q=cloud&prefecture=Tokyo&category=services
+GET /v1/company-tender-matches?corporate_number=1234567890123&q=cloud
 GET /v1/signals
 ```
 
@@ -69,6 +70,8 @@ Invoke-RestMethod `
 ## 官方开放采购机会（KKJ）
 
 v1/tenders/search 为日本中小企业厅官公需信息门户的官方搜索 API 提供了安全的标准化入口。它仅返回适合产品展示的公告元数据与原始来源链接；不会转发公告全文、附件或可能出现的个人联系信息。
+
+`/v1/company-tender-matches` 将一家公司已登记的地区、公开采购活动和活动评分与指定能力关键词的官方招标结果结合，返回可解释的相关性评分。它不声称企业具备投标资格，也不预测中标。
 
 该功能默认关闭。启用前必须复核来源条款、在服务和 RapidAPI 页面标注来源与链接，并确认计划中的付费再分发方式符合运营方要求。详情和可直接发送的确认邮件见 docs/kkj-tender-source-review.md。
 

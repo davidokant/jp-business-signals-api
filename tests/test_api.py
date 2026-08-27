@@ -167,6 +167,18 @@ def test_tender_search_stays_disabled_until_source_confirmation(client, auth_hea
     assert response.json()["detail"] == "Tender opportunity source is not enabled yet"
 
 
+def test_company_tender_matching_stays_disabled_until_source_confirmation(
+    client, auth_headers
+) -> None:
+    response = client.get(
+        "/v1/company-tender-matches",
+        params={"corporate_number": "0000000000001", "q": "cloud"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Tender opportunity source is not enabled yet"
+
+
 def test_sources_report_provenance(client, auth_headers) -> None:
     response = client.get("/v1/sources", headers=auth_headers)
     assert response.status_code == 200

@@ -19,6 +19,7 @@ from .repository import Repository
 from .schemas import (
     Company,
     CompanySearchResponse,
+    CompanyTenderMatchResponse,
     DemoSignalResponse,
     DemoStats,
     ProcurementSignalListResponse,
@@ -63,6 +64,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             {
                 "name": "tenders",
                 "description": "Official Japanese public tender opportunity search",
+            },
+            {
+                "name": "matching",
+                "description": "Transparent supplier-to-tender opportunity matching",
             },
             {"name": "sources", "description": "Data provenance and license summaries"},
         ],
@@ -332,6 +337,74 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Official tender source is temporarily unavailable",
             ) from exc
+
+    @app.get(
+        "/v1/company-tender-matches",
+        response_model=CompanyTenderMatchResponse,
+        tags=["matching"],
+        dependencies=[Depends(auth_dependency)],
+    )
+    def company_tender_matches(
+        corporate_number: Annotated[str, Query(pattern=r"^\d{13}$")],
+        q: Annotated[str, Query(min_length=2, max_length=200)],
+        limit: Annotated[int, Query(ge=1, le=50)] = 10,
+    ) -> CompanyTenderMatchResponse:
+        """Rank official tender results for a company using explicit, inspectable signals."""
+        company = company_by_number(corporate_number)
+        if not resolved_settings.kkj_api_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tender opportunity source is not enabled yet",
+            )
+        try:
+            with KkjClient(
+                base_url=resolved_settings.kkj_base_url,
+                timeout_seconds=resolved_settings.kkj_timeout_seconds,
+            ) as client:
+                results = client.search_tenders(q=q, limit=limit)
+        except KkjError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Official tender source is temporarily unavailable",
+            ) from exc
+
+        normalized_query = q.casefold()
+        matches = []
+        for tender in results.items:
+            score = 35
+            reasons = ["Matches the requested capability keyword"]
+            if company.prefecture and tender.prefecture:
+                if company.prefecture.casefold() == tender.prefecture.casefold():
+                    score += 25
+                    reasons.append("Tender is in the supplier's registered prefecture")
+            if normalized_query in tender.title_ja.casefold():
+                score += 15
+                reasons.append("Keyword appears in the tender title")
+            if company.procurement_count:
+                score += min(company.procurement_count, 10)
+                reasons.append("Supplier has recorded public-procurement activity")
+            score += min(company.activity_score // 10, 10)
+            matches.append((score, tender.tender_id, tender, reasons[:5]))
+        matches.sort(key=lambda item: (-item[0], item[1]))
+        return CompanyTenderMatchResponse(
+            company=company,
+            search_query=q,
+            items=[
+                {
+                    "tender": tender,
+                    "match_score": min(score, 100),
+                    "match_reasons": reasons,
+                }
+                for score, _, tender, reasons in matches
+            ],
+            count=len(matches),
+            methodology=(
+                "Transparent rule-based ranking: requested capability keyword, "
+                "supplier/tender prefecture alignment, title keyword occurrence, "
+                "recorded procurement activity, and supplier activity score. "
+                "Scores are relevance indicators, not eligibility or award predictions."
+            ),
+        )
 
     @app.get(
         "/v1/signals",

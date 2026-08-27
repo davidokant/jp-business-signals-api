@@ -92,6 +92,24 @@ class TenderSearchResponse(BaseModel):
     offset: int
 
 
+class TenderMatch(BaseModel):
+    """A tender ranked against one supplier profile using transparent rules."""
+
+    tender: TenderOpportunity
+    match_score: int = Field(ge=0, le=100)
+    match_reasons: list[str] = Field(min_length=1, max_length=5)
+
+
+class CompanyTenderMatchResponse(BaseModel):
+    """Tender opportunities ranked for a selected Japanese company."""
+
+    company: Company
+    search_query: str = Field(min_length=2, max_length=200)
+    items: list[TenderMatch]
+    count: int = Field(ge=0)
+    methodology: str
+
+
 class TimelineResponse(BaseModel):
     corporate_number: str
     company_name: str
