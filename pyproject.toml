@@ -25,7 +25,7 @@ dev = [
 jpbs-ingest = "jp_business_signals.ingest:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/jp_business_signals"]
+packages = ["src/jp_business_signals", "src/us_federal_signals"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -163,3 +163,11 @@ Railway 的持久化数据库、密钥、数据库上传和验证步骤见 [`doc
 - 项目没有绕过验证码、登录、付费墙或来源访问限制的代码。
 - 对外评分只是可解释的活动指标，不用于个人信用、就业、保险等高风险决策。
 - 当前评分公式见 [评分说明](docs/scoring.md)，获得真实客户反馈前不应宣传为预测模型。
+
+## 并行可行性实验
+
+仓库包含一个未部署的美国联邦采购横向复制实验，位于
+`src/us_federal_signals`。它使用 SAM.gov 机会和 USAspending 合同历史，
+验证 NAICS、PSC、set-aside、地区和截止日的可解释供应商匹配。运行方式、
+来源边界和下一阶段见
+[`docs/us-federal-signals-feasibility.md`](docs/us-federal-signals-feasibility.md)。
