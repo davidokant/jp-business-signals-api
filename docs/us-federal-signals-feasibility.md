@@ -17,6 +17,7 @@ exposes:
 
 ```text
 GET  /health
+GET  /ready
 GET  /v1/opportunities/search
 GET  /v1/awards/search
 POST /v1/supplier-fit-analysis
@@ -37,6 +38,12 @@ contract-history analysis.
 The SAM.gov adapter deliberately excludes point-of-contact records, description
 documents, attachments, and personal contact details. Both adapters retain an
 official source link and collection timestamp.
+
+The app applies per-consumer request limiting and a process-local SAM query
+cache. It also stops new upstream searches after a conservative UTC daily
+budget. Cache hits do not spend that budget. These controls reduce accidental
+quota exhaustion but do not replace SAM.gov's account-level enforcement because
+the process-local counter resets after a restart or deployment.
 
 Primary references:
 
@@ -63,3 +70,7 @@ screening. It does not yet infer a recompete, persist opportunity versions,
 declare supplier eligibility, or predict contract awards. The next slice should
 join ending USAspending awards to related SAM.gov notices and preserve observed
 versions in a separate history database.
+
+The separate Railway deployment preflight and rollback boundary are documented
+in [`us-railway-service-hardening.md`](us-railway-service-hardening.md). Do not
+reuse the Japan service or its root `Dockerfile` for this app.

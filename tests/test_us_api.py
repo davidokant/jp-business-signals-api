@@ -78,11 +78,21 @@ def _factory(client_type: type[_ContextClient]):
     return lambda **_: client_type()
 
 
-def _client(*, sam_api_key: str | None = "sam-key") -> TestClient:
+def _client(
+    *,
+    sam_api_key: str | None = "sam-key",
+    api_keys: frozenset[str] = frozenset({"test-key"}),
+    rapidapi_proxy_secret: str | None = None,
+    rate_limit_per_minute: int = 10,
+    sam_daily_request_budget: int = 8,
+) -> TestClient:
     settings = UsSettings(
         environment="test",
-        api_keys=frozenset({"test-key"}),
+        api_keys=api_keys,
+        rapidapi_proxy_secret=rapidapi_proxy_secret,
+        rate_limit_per_minute=rate_limit_per_minute,
         sam_api_key=sam_api_key,
+        sam_daily_request_budget=sam_daily_request_budget,
     )
     return TestClient(
         create_app(
@@ -101,6 +111,54 @@ def test_us_api_requires_customer_key_and_configured_sam_source() -> None:
             "/v1/opportunities/search", headers={"X-API-Key": "test-key"}
         )
         assert response.status_code == 503
+
+
+def test_us_api_readiness_requires_sam_configuration() -> None:
+    with _client() as client:
+        assert client.get("/ready").status_code == 200
+    with _client(sam_api_key=None) as client:
+        assert client.get("/health").status_code == 200
+        assert client.get("/ready").status_code == 503
+
+
+def test_us_api_limits_direct_and_rapidapi_consumers() -> None:
+    with _client(rate_limit_per_minute=1) as client:
+        headers = {"X-API-Key": "test-key"}
+        assert client.get("/v1/awards/search", headers=headers).status_code == 200
+        limited = client.get("/v1/awards/search", headers=headers)
+        assert limited.status_code == 429
+        assert limited.headers["Retry-After"] == "60"
+
+    with _client(
+        api_keys=frozenset(),
+        rapidapi_proxy_secret="proxy-secret",
+    ) as client:
+        response = client.get(
+            "/v1/awards/search",
+            headers={
+                "X-RapidAPI-Proxy-Secret": "proxy-secret",
+                "X-RapidAPI-User": "test-consumer",
+            },
+        )
+        assert response.status_code == 200
+
+
+def test_us_api_stops_before_exceeding_sam_daily_budget() -> None:
+    headers = {"X-API-Key": "test-key"}
+    with _client(sam_daily_request_budget=1) as client:
+        first = client.get(
+            "/v1/opportunities/search", params={"q": "cloud"}, headers=headers
+        )
+        second = client.get(
+            "/v1/opportunities/search",
+            params={"q": "cybersecurity"},
+            headers=headers,
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 503
+    assert second.json()["detail"] == "SAM.gov daily request budget is exhausted"
+    assert int(second.headers["Retry-After"]) > 0
 
 
 def test_us_api_exposes_opportunities_awards_and_supplier_fit() -> None:

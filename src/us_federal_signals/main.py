@@ -6,10 +6,11 @@ from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 
-from .adapters.sam import SamError, SamOpportunitiesClient
+from .adapters.sam import SamError, SamOpportunitiesClient, SamRateLimitError
 from .adapters.usaspending import UsaspendingClient, UsaspendingError
 from .config import UsSettings
 from .matching import rank_federal_opportunities
+from .sam_guard import SamBudgetExceeded, SamQueryCoordinator
 from .schemas import (
     FederalContractAwardSearchResponse,
     FederalOpportunity,
@@ -28,6 +29,15 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or UsSettings.from_env()
     authenticator = UsApiAuthenticator(resolved_settings)
+    sam_queries = SamQueryCoordinator(
+        client_factory=sam_client_factory,
+        api_key=resolved_settings.sam_api_key,
+        base_url=resolved_settings.sam_base_url,
+        timeout_seconds=resolved_settings.source_timeout_seconds,
+        daily_request_budget=resolved_settings.sam_daily_request_budget,
+        cache_ttl_seconds=resolved_settings.sam_cache_ttl_seconds,
+        cache_max_entries=resolved_settings.sam_cache_max_entries,
+    )
     app = FastAPI(
         title="US Federal Contract Signals API — Feasibility MVP",
         version="0.1.0",
@@ -60,28 +70,35 @@ def create_app(
         limit: int,
         page: int,
     ) -> FederalOpportunitySearchResponse:
-        api_key = require_sam_key()
+        require_sam_key()
         try:
-            with sam_client_factory(
-                api_key=api_key,
-                base_url=resolved_settings.sam_base_url,
-                timeout_seconds=resolved_settings.source_timeout_seconds,
-            ) as client:
-                return client.search_opportunities(
-                    q=q,
-                    posted_from=posted_from,
-                    posted_to=posted_to,
-                    notice_types=notice_types,
-                    organization_name=organization_name,
-                    state=state_code,
-                    naics_code=naics_code,
-                    classification_code=psc_code,
-                    set_aside_code=set_aside_code,
-                    limit=limit,
-                    page=page,
-                )
+            return sam_queries.search(
+                q=q,
+                posted_from=posted_from,
+                posted_to=posted_to,
+                notice_types=notice_types,
+                organization_name=organization_name,
+                state=state_code,
+                naics_code=naics_code,
+                classification_code=psc_code,
+                set_aside_code=set_aside_code,
+                limit=limit,
+                page=page,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except SamBudgetExceeded as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="SAM.gov daily request budget is exhausted",
+                headers={"Retry-After": str(exc.retry_after_seconds)},
+            ) from exc
+        except SamRateLimitError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="SAM.gov request quota is temporarily exhausted",
+                headers={"Retry-After": str(exc.retry_after_seconds)},
+            ) from exc
         except SamError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -91,6 +108,15 @@ def create_app(
     @app.get("/health", tags=["operations"])
     def health() -> dict[str, str]:
         return {"status": "ok", "version": "0.1.0", "stage": "feasibility"}
+
+    @app.get("/ready", tags=["operations"], include_in_schema=False)
+    def ready() -> dict[str, str]:
+        require_sam_key()
+        return {
+            "status": "ready",
+            "version": "0.1.0",
+            "sam_source": "configured",
+        }
 
     @app.get(
         "/v1/opportunities/search",

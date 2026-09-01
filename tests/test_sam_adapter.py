@@ -5,7 +5,11 @@ from datetime import date
 import httpx
 import pytest
 
-from us_federal_signals.adapters.sam import SamError, SamOpportunitiesClient
+from us_federal_signals.adapters.sam import (
+    SamError,
+    SamOpportunitiesClient,
+    SamRateLimitError,
+)
 
 SAMPLE_RESPONSE = {
     "totalRecords": 2,
@@ -107,3 +111,20 @@ def test_sam_search_rejects_invalid_payload() -> None:
                 posted_from=date(2026, 8, 1),
                 posted_to=date(2026, 8, 30),
             )
+
+
+def test_sam_search_classifies_upstream_rate_limit_without_exposing_key() -> None:
+    with SamOpportunitiesClient(
+        api_key="test-sam-key",
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(429, headers={"Retry-After": "120"})
+        ),
+    ) as client:
+        with pytest.raises(SamRateLimitError) as captured:
+            client.search_opportunities(
+                posted_from=date(2026, 8, 1),
+                posted_to=date(2026, 8, 30),
+            )
+
+    assert captured.value.retry_after_seconds == 120
+    assert "test-sam-key" not in str(captured.value)

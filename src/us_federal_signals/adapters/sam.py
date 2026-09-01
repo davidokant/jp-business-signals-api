@@ -18,6 +18,12 @@ class SamError(RuntimeError):
     """Raised when SAM.gov is unavailable or returns an invalid response."""
 
 
+class SamRateLimitError(SamError):
+    def __init__(self, retry_after_seconds: int = 60) -> None:
+        super().__init__("SAM.gov request quota exhausted")
+        self.retry_after_seconds = retry_after_seconds
+
+
 class SamOpportunitiesClient:
     def __init__(
         self,
@@ -88,8 +94,12 @@ class SamOpportunitiesClient:
 
         try:
             response = self._client.get(self._search_url, params=params)
+            if response.status_code == 429:
+                raise SamRateLimitError(_retry_after_seconds(response))
             response.raise_for_status()
             payload = response.json()
+        except SamRateLimitError:
+            raise
         except (httpx.HTTPError, ValueError) as exc:
             raise SamError("SAM.gov opportunities request failed") from exc
         return _parse_response(payload, limit=limit, page=page)
@@ -228,3 +238,10 @@ def _nonnegative_int(value: Any) -> int:
 
 def _string(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
+
+
+def _retry_after_seconds(response: httpx.Response) -> int:
+    try:
+        return max(1, int(response.headers.get("Retry-After", "60")))
+    except ValueError:
+        return 60

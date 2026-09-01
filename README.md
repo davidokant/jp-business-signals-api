@@ -171,3 +171,5 @@ Railway 的持久化数据库、密钥、数据库上传和验证步骤见 [`doc
 验证 NAICS、PSC、set-aside、地区和截止日的可解释供应商匹配。运行方式、
 来源边界和下一阶段见
 [`docs/us-federal-signals-feasibility.md`](docs/us-federal-signals-feasibility.md)。
+同一 Railway 工作区内的独立服务边界、成本保护与回滚清单见
+[`docs/us-railway-service-hardening.md`](docs/us-railway-service-hardening.md)。
